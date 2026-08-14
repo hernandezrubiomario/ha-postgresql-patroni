@@ -21,7 +21,7 @@ dnf install -y \
 
 ![captura de terminal](media/Pictures/100002010000012E00000028389B7D18E9A4D2CB.png)
 
-Inicializa el clúster
+### Inicializa el clúster
 
 Inicializar manualmente el clúster PostgreSQL no era necesario para el despliegue final con Patroni. Ese comando crea un clúster PostgreSQL independiente (PGDATA). Patroni es quien realiza el bootstrap.
 
@@ -58,7 +58,7 @@ etcd es una base de datos distribuida clave-valor diseñada para almacenar infor
 
 - Detecta la pérdida del liderazgo mediante leases/TTL: si el líder deja de renovar su bloqueo, Patroni puede iniciar una nueva elección.
 
-Instalar etcd
+### Instalar etcd
 
 Rocky Linux 9 no dispone del paquete etcd en sus repositorios oficiales (BaseOS, AppStream, Extras) ni en EPEL. Por este motivo, se ha optado por instalar el binario oficial de etcd, descargado directamente
 
@@ -90,7 +90,7 @@ Comprueba:
 
 ![captura de terminal](media/Pictures/10000201000001230000008845AD98FC243E7E16.png)
 
-Crear el usuario (en los 5 nodos)
+### Crear el usuario (en los 5 nodos)
 
 Se crea un usuario de sistema exclusivo para etcd para ejecutar el servicio de forma segura, sin permitir inicio de sesión interactivo
 
@@ -98,7 +98,7 @@ Se crea un usuario de sistema exclusivo para etcd para ejecutar el servicio de f
 
 - id etcd
 
-Crear los directorios y asigna permisos (en los 5 nodos)
+### Crear los directorios y asigna permisos (en los 5 nodos)
 
 - mkdir -p /etc/etcd
 
@@ -108,7 +108,7 @@ Crear los directorios y asigna permisos (en los 5 nodos)
 
 - chmod 700 /var/lib/etcd
 
-Crear el servicio systemd (en los 5 nodos)
+### Crear el servicio systemd (en los 5 nodos)
 
 - Crea el fichero: vi /etc/systemd/system/etcd.service
 
@@ -148,7 +148,7 @@ Es normal que aparezca “inactive (dead)” o “failed” porque todavía no h
 
 ¿Por qué hacemos esto? Dejamos preparado el servicio para que, una vez creada la configuración, solo tengamos que ejecutar “systemctl enable --now etcd” y todos los nodos arranquen exactamente igual.
 
-Crear etcd.conf.yml (en los 5 nodos)
+### Crear etcd.conf.yml (en los 5 nodos)
 
 En cada nodo crea:
 
@@ -233,13 +233,13 @@ initial-cluster-state: new
 initial-cluster-token: postgres-cluster
 ```
 
-Asigna propietraio y permisos en los 5 nodos
+### Asigna propietario y permisos en los 5 nodos
 
 - chown etcd:etcd /etc/etcd/etcd.conf.yml
 
 - chmod 640 /etc/etcd/etcd.conf.yml
 
-Abrir puertos (en los 5 nodos)
+### Abrir puertos (en los 5 nodos)
 
 En los 5 nodos:
 
@@ -254,7 +254,7 @@ En los 5 nodos:
 - 2379: conexiones de Patroni y etcdctl.
 - 2380: comunicación interna entre miembros etcd.
 
-Comprobar directorio vacío (en los 5 nodos)
+### Comprobar directorio vacío (en los 5 nodos)
 
 Solo para este primer arranque. Debe estar vacío
 
@@ -262,7 +262,7 @@ Solo para este primer arranque. Debe estar vacío
 
 - rm -rf /var/lib/etcd/\*
 
-Arrancar etcd (en los 5 nodos)
+### Arrancar etcd (en los 5 nodos)
 
 Ejecuta en los 5 nodos, uno detrás de otro:
 
@@ -276,7 +276,7 @@ Realizarlo en los 5 nodos seguidos ya que esta configurado como quorum y hasta q
 
 ![captura de terminal](media/Pictures/1000020100000327000001899A24C270D778279D.png)
 
-Mostrar estado de etcd
+### Mostrar estado de etcd
 
 Muestra el estado detallado de los 5 nodos etcd: versión, tamaño de la base de datos, cuál es el líder, término e índices Raft, entre otros datos.
 
@@ -290,7 +290,7 @@ Desde nodo con etcd:
 
 El resultado es correcto: muestra 5 nodos y uno de ellos como lider
 
-Mostrar salid de etcd
+### Mostrar salud de etcd
 
 Comprueba la salud de los 5 nodos etcd, verificando que cada endpoint está accesible y puede responder correctamente.
 
@@ -318,7 +318,7 @@ Ventajas de usar entorno virtual
 - Es la recomendación del proyecto Patroni.
 - Más fácil actualizar o hacer rollback
 
-Detener PostgreSQL
+### Detener PostgreSQL
 
 Patroni deberá controlar PostgreSQ
 
@@ -332,7 +332,7 @@ Comprueba:
 
 - systemctl is-enabled postgresql
 
-Crear el entorno virtual
+### Crear el entorno virtual
 
 Para mantener Patroni y sus dependencias Python aislados del sistema, utilizaremos un entorno virtual dedicado en /opt/patroni.
 
@@ -352,7 +352,7 @@ Actualiza las herramientas necesarias para instalar y gestionar correctamente lo
 
 ![captura de terminal](media/Pictures/1000020100000290000000CB44B051C55D6641A9.png)
 
-Instalar Patroni
+### Instalar Patroni
 
 Como utilizamos etcd mediante la API v3 y PostgreSQL 18, instalamos Patroni con los componentes necesarios:
 
@@ -377,7 +377,7 @@ No se necesita ejecutar “source /opt/patroni/bin/activate” para el servicio.
 
 ![captura de terminal](media/Pictures/100002010000015D000000E5A4DD2F2058D489DB.png)
 
-Crear directorios (3 workers)
+### Crear directorios (3 workers)
 
 - mkdir -p /etc/patroni
 
@@ -387,7 +387,7 @@ Crear directorios (3 workers)
 
 - chmod 750 /etc/patroni
 
-Comprobar PostgreSQL
+### Comprobar PostgreSQL
 
 Necesitamos conocer las rutas que usará Patroni. Ejecuta en un nodo postgresql:
 
@@ -400,7 +400,7 @@ Con esta salida construiremos el patroni.yml correctamente. Es importante porque
 
 ![captura de terminal](media/Pictures/100002010000021000000177F718827CFC3C8C2D.png)
 
-Limpiar el PostgreSQL inicial en caso de ser haber sido inicializado
+### Limpiar el PostgreSQL inicial en caso de ser haber sido inicializado
 
 Como Patroni debe crear y gestionar el clúster, eliminaremos el data directory creado con postgresql-18-setup --initdb.
 
@@ -416,7 +416,7 @@ El primer nodo será inicializado por Patroni como primary. Los otros dos se cre
 
 No arranques ya el servicio postgresql. Desde este punto, PostgreSQL será controlado únicamente por Patroni.
 
-Crear patroni.yml (en 3 nodos)
+### Crear patroni.yml (en 3 nodos)
 
 Ahora crearemos los tres archivos patroni.yml, pero antes necesitamos definir las contraseñas.
 
@@ -738,19 +738,19 @@ tags:
 EOF
 ```
 
-Modificar propietarios y permisos
+### Modificar propietarios y permisos
 
 - chown postgres:postgres /etc/patroni/patroni.yml
 
 - chmod 600 /etc/patroni/patroni.yml
 
-Valida en los tres workers:
+### Valida en los tres workers
 
 - /opt/patroni/bin/patroni --validate-config /etc/patroni/patroni.yml
 
 \*Que --validate-config no muestre nada significa que no ha encontrado errores.
 
-Crear el servicio systemd de Patroni
+### Crear el servicio systemd de Patroni
 
 En los 3 nodos patroni crear el fichero
 
@@ -813,25 +813,21 @@ PostgreSQL debe estar parado- Debe aparecer:inactive (dead)
 
 - systemctl status postgresql
 
-- 
-
 El directorio de datos debe estar vacío
 
-- ls -la /var/lib/pgsql/data
+- rm -rf /var/lib/pgsql/data
 
-- 
+- ls -la /var/lib/pgsql/data
 
 etcd debe estar funcionando. Debe aparecer: active (running)
 
 - systemctl status etcd
 
-- - 
-
 Validar la configuración de Patroni (Sin salida = correcto)
 
 - /opt/patroni/bin/patroni --validate-config /etc/patroni/patroni.yml
 
-Arrancar solo el primer nodo
+### Arrancar solo el primer nodo
 
 En postgresql1:
 
@@ -853,7 +849,7 @@ Importante: No arranques todavía postgresql2 ni postgresql3. Primero vamos a co
 
 ![captura de terminal](media/Pictures/100002010000032B0000028592190990C027EF68.png)
 
-Verificar el clúster
+### Verificar el clúster
 
 En postgresql1:
 
@@ -870,7 +866,7 @@ Comprobar la API:
 
 - curl -s http://192.168.10.21:8008/primary
 
-Incorporar las réplicas
+### Incorporar las réplicas
 
 Ahora arranca Patroni en worker2 y después en worker3:
 
@@ -894,7 +890,7 @@ Con Patroni modificas la configuración dinámica centralizada en etcd. Patroni 
 
 etcd es la una única fuente de verdad y evitas que postgresql1, postgresql2 y postgresql3 terminen con reglas distintas.
 
-Modificar
+### Modificar
 
 Una vez que el clúster Patroni ha sido inicializado, las reglas definidas dentro del bloque “bootstrap” se utiliza únicamente durante la creación inicial del clúster.
 
@@ -908,7 +904,7 @@ A partir de ese momento, las modificaciones de “pg_hba.conf” deben realizars
 
 Esto permite modificar la configuración de forma centralizada para que Patroni la gestione y aplique de manera coherente en los nodos del clúster.
 
-Reglas necesarias para nuestro laboratorio
+### Reglas necesarias para nuestro laboratorio
 
 ![captura de terminal](media/Pictures/100002010000024800000233AF22573E03BB3C6D.png)
 
@@ -918,7 +914,7 @@ Las reglas de “rewind_user” son necesarias para “pg_rewind”. Después de
 
 La ausencia de estas reglas impide que antiguo nodo primary pasara correctamente del timeline anterior al nuevo.
 
-Aplicar los cambios
+### Aplicar los cambios
 
 Después de guardar los cambios con “edit-config”:
 
@@ -932,7 +928,7 @@ El estado normal esperado es un único Leader y las otras dos instancias como Re
 
 ## 6. Instalar HAProxy
 
-Instalar HAProxy
+### Instalar HAProxy
 
 En HAProxy-1 y HAProxy-2:
 
@@ -940,7 +936,7 @@ En HAProxy-1 y HAProxy-2:
 
 - haproxy -v
 
-Abrir puertos
+### Abrir puertos
 
 En ambos nodos:
 
@@ -953,7 +949,7 @@ En ambos nodos:
 - 5432: acceso al PostgreSQL primario.
 - 7000: página de estadísticas de HAProxy.
 
-Crear la configuración
+### Crear la configuración
 
 En ambos nodos HAproxy:
 
@@ -1039,7 +1035,7 @@ Además, expone una página de estadísticas en el puerto 7000 para consultar el
 
 En resumen: HAProxy permite que los clientes se conecten siempre al Primary actual sin necesidad de conocer qué servidor desempeña ese rol, incluso después de un failover.
 
-Validar y arrancar
+### Validar y arrancar
 
 En ambos nodos HAProxy:
 
@@ -1081,13 +1077,13 @@ De esta forma, los clientes utilizan siempre la misma IP, independientemente de 
 
 Configuraremos Keepalived mediante VRRP en modo unicast, especialmente adecuado para entornos virtualizados donde el tráfico multicast puede estar limitado o no ser conveniente.
 
-Instalar Keepalived
+### Instalar Keepalived
 
 En nodos HAProxy-1 y HAProxy-2:
 
 - dnf install -y keepalived
 
-Crear el script de comprobación de HAProxy
+### Crear el script de comprobación de HAProxy
 
 En ambos nodos:
 
@@ -1184,7 +1180,7 @@ EOF
 
 En condiciones normales, HAProxy-1 mantiene la VIP porque tiene prioridad 110. Si HAProxy-1 falla, baja a 80, mientras HAProxy-2 mantiene 100 y toma la VIP 192.168.10.32.
 
-Configurar keepalived en nodo HAProxy-2
+### Configurar keepalived en nodo HAProxy-2
 
 - cp /etc/keepalived/keepalived.conf /etc/keepalived/keepalived.conf.bak
 
@@ -1266,7 +1262,7 @@ EOF
 
 En resumen, este archivo configura HAProxy-2 como BACKUP. Si HAProxy-1 deja de estar disponible o su HAProxy falla, HAProxy-2 aumenta su posición relativa y toma la VIP 192.168.10.32
 
-Abrir VRRP en el firewall
+### Abrir VRRP en el firewall
 
 En ambos nodos:
 
@@ -1278,7 +1274,7 @@ Esto permite que Keepalived intercambie mensajes VRRP entre HAProxy-1 y HAProxy-
 
 VRRP utiliza el protocolo IP 112; no utiliza un puerto TCP o UDP.
 
-Validar la configuración
+### Validar la configuración
 
 En ambos nodos:
 
@@ -1286,7 +1282,7 @@ En ambos nodos:
 
 Si no muestra errores importantes, continúa.
 
-Arrancar Keepalived
+### Arrancar Keepalived
 
 Primero en HAProxy-2 y después en HAProxy-1:
 
@@ -1300,7 +1296,7 @@ Se recomienda arrancar primero HAProxy-2 (BACKUP) y después HAProxy-1 (MASTER) 
 
 Así puedes comprobar desde el principio que ambos nodos participan correctamente en VRRP y que la VIP puede moverse entre ellos.
 
-Comprobar dónde está la VIP
+### Comprobar dónde está la VIP
 
 En HAProxy-1:
 
@@ -1314,7 +1310,7 @@ En HAProxy-2 solo debería aparecer: 192.168.10.31/24
 
 La VIP queda inicialmente en HAProxy-1 porque tiene prioridad 110, superior a la prioridad 100 de HAProxy-2
 
-Comprobar failover
+### Comprobar failover
 
 Keepalived funciona correctamente:
 
@@ -1324,54 +1320,7 @@ Keepalived funciona correctamente:
 
 Por tanto, HAProxy-1 está como MASTER y HAProxy-2 como BACKUP.
 
----
-
-VRRP Multicast (modo tradicional)
-
-Es el modo original de VRRP. Los nodos envían anuncios multicast para avisar de que siguen vivos.
-
-![captura de terminal](media/Pictures/10000201000000DE0000002CBC801D83083B3990.png)
-
-Ventajas
-
-- Configuración muy sencilla.
-- Es el estándar de VRRP.
-- Muy utilizado en redes físicas tradicionales.
-
-Inconvenientes
-
-Muchas plataformas virtuales bloquean o no gestionan bien el tráfico multicast, por ejemplo:
-
-- VMware (según configuración) y VirtualBox.
-- Algunas redes cloud.
-- Algunas VLAN o switches.
-
-Esto puede provocar que los nodos no se vean entre sí y ambos crean que son el MASTER (split-brain).
-
-VRRP Unicast
-
-En lugar de enviar multicast, los nodos se envían mensajes directamente entre ellos.
-
-![captura de terminal](media/Pictures/10000201000000EB0000002A256C910D64C3F676.png)
-
-No depende de que la red soporte multicast.
-
-Ventajas
-
-- Funciona en prácticamente cualquier red.
-- Ideal para máquinas virtuales.
-- Ideal para cloud (AWS, Azure, GCP...).
-- Más predecible.
-
-Inconveniente
-
-- Hay que indicar manualmente quiénes son los nodos vecinos (unicast_peer)
-
-¿Es unicast incorrecto en físico? No. Unicast también es totalmente válido en servidores físicos. Simplemente configuras explícitamente las IP de los dos nodos. Es más predecible y facilita saber exactamente entre qué servidores circulan los anuncios
-
----
-
-Detener servicio haproxy en HAProxy-1
+### Detener servicio haproxy en HAProxy-1
 
 - systemctl stop haproxy
 
@@ -1384,7 +1333,7 @@ Espera unos segundos y comprueba:
 - En HAProxy-1 debería desaparecer: 192.168.10.32/24
 - En HAProxy-2 debería aparecer: 192.168.10.31/24 192.168.10.32/24
 
-Recuperar servicio haproxy en HAProxy-1
+### Recuperar servicio haproxy en HAProxy-1
 
 - systemctl start haproxy
 
@@ -1392,7 +1341,7 @@ Tras unos segundos, como HAProxy-1 tiene prioridad 110 y HAProxy-2 prioridad 100
 
 ## 8. Validar la alta disponibilidad completa
 
-Caída del PostgreSQL líder
+### Caída del PostgreSQL líder postgresql1
 
 Primero comprueba cuál es el líder actual desde cualquiera de los nodos PostgreSQL:
 
@@ -1419,7 +1368,7 @@ Por eso desaparece de la lista. No aparece como stopped, simplemente deja de for
 
 ![captura de terminal](media/Pictures/10000201000003170000007A20019D77872C9D21.png)
 
-Ahora recupera postgresql1
+### Ahora recupera postgresql1
 
 En postgresql1:
 
@@ -1447,7 +1396,7 @@ En tu caso ocurrió esto:
 
 ![captura de terminal](media/Pictures/1000020100000311000000893CE12D710B966945.png)
 
-Validar la conexión real mediante la VIP
+### Validar la conexión real mediante la VIP
 
 Desde cualquier nodo con psql:
 
@@ -1466,7 +1415,7 @@ Esto confirmará que:
 - HAProxy envía la conexión al líder actual;
 - PostgreSQL responde desde el primario, no desde una réplica.
 
-Crear una tabla temporal
+### Crear una tabla temporal
 
 Desde postgresql1:
 
