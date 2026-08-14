@@ -233,7 +233,7 @@ initial-cluster-state: new
 initial-cluster-token: postgres-cluster
 ```
 
-### Asigna propietraio y permisos en los 5 nodos
+### Asigna propietario y permisos en los 5 nodos
 
 - chown etcd:etcd /etc/etcd/etcd.conf.yml
 
