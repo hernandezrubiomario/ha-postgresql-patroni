@@ -9,7 +9,8 @@ Laboratorio propio de despliegue de un clúster PostgreSQL de alta disponibilida
 
 ## Contenido
 
-- [`HA_POSTGRESQL.md`](./HA_POSTGRESQL.md) — documento completo: instalación paso a paso, configuración y validación de la alta disponibilidad (failover de PostgreSQL y de HAProxy), incluyendo un incidente real resuelto durante el despliegue.
+- [`HA_POSTGRESQL.md`](./HA_POSTGRESQL.md) — documento completo: instalación paso a paso, configuración y validación de la alta disponibilidad (failover de PostgreSQL y de HAProxy).
+- [`FALLOS.md`](./FALLOS.md) — incidencias reales encontradas durante el despliegue, con causa raíz y solución aplicada.
 - [`media/diagrams/arquitectura_ha_postgresql.png`](./media/diagrams/arquitectura_ha_postgresql.png) — diagrama de la arquitectura: jerarquía de componentes y flujo desde el cliente (vía VIP) hasta el líder de Patroni.
 
 ## Arquitectura
