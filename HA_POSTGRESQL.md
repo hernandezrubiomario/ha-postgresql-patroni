@@ -21,11 +21,11 @@ dnf install -y \
 
 ![captura de terminal](media/Pictures/100002010000012E00000028389B7D18E9A4D2CB.png)
 
-**Inicializa el clúster**
+Inicializa el clúster
 
-**I**nicializar manualmente el clúster PostgreSQL no era necesario para el despliegue final con Patroni. Ese comando crea un clúster PostgreSQL independiente (PGDATA). **Patroni **es** quien **realiza el** bootstrap**.**
+Inicializar manualmente el clúster PostgreSQL no era necesario para el despliegue final con Patroni. Ese comando crea un clúster PostgreSQL independiente (PGDATA). Patroni es quien realiza el bootstrap.
 
-**Habilita el servicio**
+Habilita el servicio
 
 - systemctl enable --now postgresql-18.service
 
@@ -35,32 +35,32 @@ dnf install -y \
 
 Tendremos un clúster etcd de 5 miembros:
 
-- **postgresql1**
-- **postgresql2**
-- **postgresql2**
+- postgresql1
+- postgresql2
+- postgresql2
 
 - HAProxy-1
 - HAProxy-2
 
-**etcd** es una **base de datos distribuida clave-valor** diseñada para almacenar información crítica de coordinación de un clúster, es decir, será la "base de datos de coordinación" del clúster:
+etcd es una base de datos distribuida clave-valor diseñada para almacenar información crítica de coordinación de un clúster, es decir, será la "base de datos de coordinación" del clúster:
 
-- **Mantiene el estado del clúster** y registra quién es el líder (Primary).
+- Mantiene el estado del clúster y registra quién es el líder (Primary).
 
-- **Mantiene el consenso** entre los nodos mediante quórum.
+- Mantiene el consenso entre los nodos mediante quórum.
 
-- **Evita el **split-brain**, ayudando a impedir que existan dos líderes simultáneamente.
+- Evita el split-brain, ayudando a impedir que existan dos líderes simultáneamente.
 
-- **Coordina las elecciones de líder** cuando el Primary deja de estar disponible.
+- Coordina las elecciones de líder cuando el Primary deja de estar disponible.
 
-- **Permite el failover automático**, proporcionando a Patroni la información necesaria para promocionar una réplica.
+- Permite el failover automático, proporcionando a Patroni la información necesaria para promocionar una réplica.
 
-- **Almacena configuración y metadatos distribuidos** que Patroni utiliza para coordinar el clúster.
+- Almacena configuración y metadatos distribuidos que Patroni utiliza para coordinar el clúster.
 
-- **Detecta la pérdida del liderazgo mediante leases/TTL**: si el líder deja de renovar su bloqueo, Patroni puede iniciar una nueva elección.
+- Detecta la pérdida del liderazgo mediante leases/TTL: si el líder deja de renovar su bloqueo, Patroni puede iniciar una nueva elección.
 
 Instalar etcd
 
-**Rocky Linux 9 no dispone del paquete **etcd** en sus repositorios oficiales (BaseOS, AppStream, Extras) ni en EPEL. **Por este motivo, se ha optado por **instalar el binario oficial de etcd**, descargado directament**e**
+Rocky Linux 9 no dispone del paquete etcd en sus repositorios oficiales (BaseOS, AppStream, Extras) ni en EPEL. Por este motivo, se ha optado por instalar el binario oficial de etcd, descargado directamente
 
 - cd /usr/local/src
 
@@ -70,15 +70,15 @@ Instalar etcd
 
 -cp etcd-v3.5.21-linux-amd64/etcd /usr/local/bin
 
-→ **Copia el servidor etcd que ejecuta y mantiene el clúster etcd**
+→ Copia el servidor etcd que ejecuta y mantiene el clúster etcd
 
 -cp etcd-v3.5.21-linux-amd64/etcdctl /usr/local/bin/
 
-→ **Copia la **herramienta CLI para administrar y consultar el clúster etcd**
+→ Copia la herramienta CLI para administrar y consultar el clúster etcd
 
 - cp etcd-v3.5.21-linux-amd64/etcdutl /usr/local/bin/
 
-→ **Copia la utilidad para tareas de mantenimiento y recuperación, como trabajar con snapshots**
+→ Copia la utilidad para tareas de mantenimiento y recuperación, como trabajar con snapshots
 
 - chmod +x /usr/local/bin/etcd\*
 
@@ -92,13 +92,13 @@ Comprueba:
 
 Crear el usuario (en los 5 nodos)
 
-Se crea un **usuario de sistema exclusivo para etcd** para ejecutar el servicio de forma segura, sin permitir inicio de sesión interactivo
+Se crea un usuario de sistema exclusivo para etcd para ejecutar el servicio de forma segura, sin permitir inicio de sesión interactivo
 
 - useradd --system --home-dir /var/lib/etcd --shell /sbin/nologin etcd
 
 - id etcd
 
-**Crear los directorios y asigna permisos (en los 5 nodos)**
+Crear los directorios y asigna permisos (en los 5 nodos)
 
 - mkdir -p /etc/etcd
 
@@ -114,51 +114,31 @@ Crear el servicio systemd (en los 5 nodos)
 
 Añade:
 
+```ini
 [Unit]
-
 Description=etcd
-
 Documentation=https://etcd.io/docs/
-
-\# Espera a que la red esté completamente disponible
-
+# Espera a que la red esté completamente disponible
 After=network-online.target
-
 Wants=network-online.target
-
 [Service]
-
-\# Permite a etcd notificar a systemd cuando está listo
-
+# Permite a etcd notificar a systemd cuando está listo
 Type=notify
-
-\# Ejecuta etcd con su usuario dedicado, no como root
-
+# Ejecuta etcd con su usuario dedicado, no como root
 User=etcd
-
 Group=etcd
-
-\# Inicia etcd utilizando nuestro fichero de configuración
-
+# Inicia etcd utilizando nuestro fichero de configuración
 ExecStart=/usr/local/bin/etcd --config-file=/etc/etcd/etcd.conf.yml
-
-\# Reinicia automáticamente etcd si el proceso falla
-
+# Reinicia automáticamente etcd si el proceso falla
 Restart=always
-
-\# Espera 5 segundos antes de intentar reiniciarlo
-
+# Espera 5 segundos antes de intentar reiniciarlo
 RestartSec=5
-
-\# Aumenta el límite de archivos/descriptores abiertos
-
+# Aumenta el límite de archivos/descriptores abiertos
 LimitNOFILE=65536
-
 [Install]
-
-\# Permite iniciar etcd automáticamente durante el arranque del sistema
-
+# Permite iniciar etcd automáticamente durante el arranque del sistema
 WantedBy=multi-user.target
+```
 
 - systemctl daemon-reload
 
@@ -176,157 +156,82 @@ En cada nodo crea:
 
 **postgresql1 - 192.168.10.21**
 
-\# Nombre único de este miembro dentro del clúster etcd
-
+```yaml
+# Nombre único de este miembro dentro del clúster etcd
 name: etcd1
-
-\# Directorio donde etcd almacena sus datos
-
+# Directorio donde etcd almacena sus datos
 data-dir: /var/lib/etcd
-
-\# Dirección para comunicarse con los demás nodos etcd
-
+# Dirección para comunicarse con los demás nodos etcd
 listen-peer-urls: http://192.168.10.21:2380
-
-\# Direcciones donde acepta conexiones de clientes (Patroni, etcdctl...)
-
+# Direcciones donde acepta conexiones de clientes (Patroni, etcdctl...)
 listen-client-urls: http://192.168.10.21:2379,http://127.0.0.1:2379
-
-\# Dirección que anuncia a los demás miembros del clúster
-
+# Dirección que anuncia a los demás miembros del clúster
 initial-advertise-peer-urls: http://192.168.10.21:2380
-
-\# Dirección que anuncia a los clientes
-
+# Dirección que anuncia a los clientes
 advertise-client-urls: http://192.168.10.21:2379
-
-\# Define los 5 miembros que formarán inicialmente el clúster etcd
-
+# Define los 5 miembros que formarán inicialmente el clúster etcd
 initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380
-
-\# Indica que estamos creando un clúster nuevo
-
+# Indica que estamos creando un clúster nuevo
 initial-cluster-state: new
-
-\# Identificador común para este clúster
-
+# Identificador común para este clúster
 initial-cluster-token: postgres-cluster
+```
 
-**postgresql**2** -** **192.168.10.22**
+**postgresql2 - 192.168.10.22**
 
-**
-
-**name: etcd2**
-
-**data-dir: /var/lib/etcd**
-
-**
-
-**listen-peer-urls: http://192.168.10.22:2380**
-
-**listen-client-urls: http://192.168.10.22:2379,http://127.0.0.1:2379**
-
-**
-
-**initial-advertise-peer-urls: http://192.168.10.22:2380**
-
-**advertise-client-urls: http://192.168.10.22:2379**
-
-**
-
-**initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380**
-
-**initial-cluster-state: new**
-
-**initial-cluster-token: postgres-cluster**
-
-**
-
-**
-
-**
-
-**
-
-**postgresql**3** - 192.168.10.23**
-
-**
-
-**name: etcd3**
-
-**data-dir: /var/lib/etcd**
-
-**
-
-**listen-peer-urls: http://192.168.10.23:2380**
-
-**listen-client-urls: http://192.168.10.23:2379,http://127.0.0.1:2379**
-
-**
-
-**initial-advertise-peer-urls: http://192.168.10.23:2380**
-
-**advertise-client-urls: http://192.168.10.23:2379**
-
-**
-
-**initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380**
-
-**initial-cluster-state: new**
-
-**initial-cluster-token: postgres-cluster**
-
-**
-
-HAProxy-1 - 192.168.10.30
-
-name: etcd4
-
+```yaml
+name: etcd2
 data-dir: /var/lib/etcd
-
-listen-peer-urls: http://192.168.10.30:2380
-
-listen-client-urls: http://192.168.10.30:2379,http://127.0.0.1:2379
-
-initial-advertise-peer-urls: http://192.168.10.30:2380
-
-advertise-client-urls: http://192.168.10.30:2379
-
+listen-peer-urls: http://192.168.10.22:2380
+listen-client-urls: http://192.168.10.22:2379,http://127.0.0.1:2379
+initial-advertise-peer-urls: http://192.168.10.22:2380
+advertise-client-urls: http://192.168.10.22:2379
 initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380
-
 initial-cluster-state: new
-
 initial-cluster-token: postgres-cluster
+```
+
+**postgresql3 - 192.168.10.23**
+
+```yaml
+name: etcd3
+data-dir: /var/lib/etcd
+listen-peer-urls: http://192.168.10.23:2380
+listen-client-urls: http://192.168.10.23:2379,http://127.0.0.1:2379
+initial-advertise-peer-urls: http://192.168.10.23:2380
+advertise-client-urls: http://192.168.10.23:2379
+initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380
+initial-cluster-state: new
+initial-cluster-token: postgres-cluster
+```
+
+**HAProxy-1 - 192.168.10.30**
+
+```yaml
+name: etcd4
+data-dir: /var/lib/etcd
+listen-peer-urls: http://192.168.10.30:2380
+listen-client-urls: http://192.168.10.30:2379,http://127.0.0.1:2379
+initial-advertise-peer-urls: http://192.168.10.30:2380
+advertise-client-urls: http://192.168.10.30:2379
+initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380
+initial-cluster-state: new
+initial-cluster-token: postgres-cluster
+```
 
 **HAProxy-2 - 192.168.10.31**
 
-**
-
-**name: etcd5**
-
-**data-dir: /var/lib/etcd**
-
-**
-
-**listen-peer-urls: http://192.168.10.31:2380**
-
-**listen-client-urls: http://192.168.10.31:2379,http://127.0.0.1:2379**
-
-**
-
-**initial-advertise-peer-urls: http://192.168.10.31:2380**
-
-**advertise-client-urls: http://192.168.10.31:2379**
-
-**
-
-**initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380**
-
-**initial-cluster-state: new**
-
-**initial-cluster-token: postgres-cluster**
-
-**
+```yaml
+name: etcd5
+data-dir: /var/lib/etcd
+listen-peer-urls: http://192.168.10.31:2380
+listen-client-urls: http://192.168.10.31:2379,http://127.0.0.1:2379
+initial-advertise-peer-urls: http://192.168.10.31:2380
+advertise-client-urls: http://192.168.10.31:2379
+initial-cluster: etcd1=http://192.168.10.21:2380,etcd2=http://192.168.10.22:2380,etcd3=http://192.168.10.23:2380,etcd4=http://192.168.10.30:2380,etcd5=http://192.168.10.31:2380
+initial-cluster-state: new
+initial-cluster-token: postgres-cluster
+```
 
 Asigna propietraio y permisos en los 5 nodos
 
@@ -346,8 +251,8 @@ En los 5 nodos:
 
 - firewall-cmd --list-ports
 
-- **2379**: conexiones de Patroni y etcdctl.
-- **2380**: comunicación interna entre miembros etcd.
+- 2379: conexiones de Patroni y etcdctl.
+- 2380: comunicación interna entre miembros etcd.
 
 Comprobar directorio vacío (en los 5 nodos)
 
@@ -453,8 +358,8 @@ Como utilizamos etcd mediante la API v3 y PostgreSQL 18, instalamos Patroni con 
 
 - /opt/patroni/bin/pip install "patroni[etcd3,psycopg3]"
 
-- **etcd3** → permite a Patroni utilizar etcd como sistema distribuido de coordinación (DCS) mediante su API v3.
-- **psycopg3** → controlador Python que permite a Patroni comunicarse con PostgreSQL.
+- etcd3 → permite a Patroni utilizar etcd como sistema distribuido de coordinación (DCS) mediante su API v3.
+- psycopg3 → controlador Python que permite a Patroni comunicarse con PostgreSQL.
 
 Comprobar
 
@@ -462,7 +367,7 @@ Comprobar
 
 /opt/patroni/bin/patronictl version
 
-/opt/patroni/bin/python -c "import psycopg; print(psycopg.\_\_version\_\_)"
+/opt/patroni/bin/python -c "import psycopg; print(psycopg.__version__)"
 
 ![captura de terminal](media/Pictures/10000201000002FA00000068F710ADA842172214.png)
 
@@ -507,7 +412,7 @@ Como Patroni debe crear y gestionar el clúster, eliminaremos el data directory 
 
 - ls -la /var/lib/pgsql/data
 
-El primer nodo será inicializado por Patroni como primary. Los otros dos se crearán automáticamente como réplicas mediante **pg_basebackup**.
+El primer nodo será inicializado por Patroni como primary. Los otros dos se crearán automáticamente como réplicas mediante pg_basebackup.
 
 No arranques ya el servicio postgresql. Desde este punto, PostgreSQL será controlado únicamente por Patroni.
 
@@ -519,760 +424,321 @@ Usaremos inicialmente:
 
 - Superusuario postgres: <POSTGRES_PASSWORD>
 
-  - Es el **superusuario** de PostgreSQL. Patroni lo utiliza para tareas administrativas sobre la instancia
+  - Es el superusuario de PostgreSQL. Patroni lo utiliza para tareas administrativas sobre la instancia
 
 - Usuario replicación: <REPLICATOR_PASSWORD>
 
-  - Usuario dedicado a la **replicación física**
-  - Las réplicas (**postgresql2/3**) lo utilizan para recibir los WAL del Primary y para el clonado mediante **pg_basebackup**.
+  - Usuario dedicado a la replicación física
+  - Las réplicas (postgresql2/3) lo utilizan para recibir los WAL del Primary y para el clonado mediante pg_basebackup.
 
 - Usuario rewind: <REWIND_PASSWORD>
 
-  - Usuario utilizado por **pg_rewind** para ayudar a reintegrar un antiguo Primary como réplica después de un failover.
-
-**postgresql1** - 192.168.10.21**
-
-**cat \> /etc/patroni/patroni.yml \<\<'EOF'**
-
-**\# Nombre del clúster PostgreSQL.**
-
-**\# Todos los nodos deben tener el mismo "scope".**
-
-**scope: postgres-ha**
-
-**
-
-**\# Ruta (namespace) donde Patroni almacenará la información del clúster en etcd.**
-
-**namespace: /service/**
-
-**
-
-**\# Nombre único de este nodo dentro del clúster.**
-
-**\# Debe ser distinto en cada servidor.**
-
-**name: postgresql1**
-
-**
-
-**\# -------------------------------------------------------------------**
-
-**\# API REST de Patroni**
-
-**\# Se utiliza para administración, monitorización y failover.**
-
-**\# -------------------------------------------------------------------**
-
-**restapi:**
-
-** \# Dirección donde escucha la API REST.**
-
-** listen: 0.0.0.0:8008**
-
-**
-
-** \# Dirección mediante la cual el resto de nodos accederán a este Patroni.**
-
-** connect_address: 192.168.10.21:8008**
-
-**
-
-**\# -------------------------------------------------------------------**
-
-**\# Configuración del clúster etcd**
-
-**\# Patroni utiliza etcd para decidir quién es el Primary y**
-
-**\# coordinar las promociones y failovers.**
-
-**\# -------------------------------------------------------------------**
-
-**etcd3:**
-
-** hosts:**
-
-**  - 192.168.10.21:2379**
-
-**  - 192.168.10.22:2379**
-
-**  - 192.168.10.23:2379**
-
-**  - 192.168.10.30:2379**
-
-**  - 192.168.10.31:2379**
-
-**
-
-**\# -------------------------------------------------------------------**
-
-**\# Configuración inicial del clúster PostgreSQL.**
-
-**\# SOLO se ejecuta la primera vez que se crea el clúster.**
-
-**\# Después la configuración se almacena en etcd.**
-
-**\# -------------------------------------------------------------------**
-
-**bootstrap:**
-
-**
-
-** dcs:**
-
-**
-
-** \# Tiempo (segundos) que un nodo mantiene el "liderazgo"**
-
-** \# si deja de comunicarse con etcd.**
-
-** ttl: 30**
-
-**
-
-** \# Cada cuántos segundos Patroni comprueba el estado del clúster.**
-
-** loop_wait: 10**
-
-**
-
-** \# Tiempo máximo para reintentar operaciones antes de considerarlas fallidas.**
-
-** retry_timeout: 10**
-
-**
-
-** \# Máximo retraso permitido de una réplica para poder promocionarla.**
-
-** maximum_lag_on_failover: 1048576**
-
-**
-
-** postgresql:**
-
-**
-
-** \# Permite usar pg_rewind para reintegrar rápidamente**
-
-** \# un antiguo Primary al clúster.**
-
-** use_pg_rewind: true**
-
-**
-
-** \# Activa replication slots.**
-
-** \# Evita perder WAL cuando una réplica está desconectada.**
-
-** use_slots: true**
-
-**
-
-** \# Parámetros que Patroni aplicará a PostgreSQL.**
-
-** parameters:**
-
-**
-
-** \# Necesario para replicación física.**
-
-** wal_level: replica**
-
-**
-
-** \# Permite consultas de solo lectura en réplicas.**
-
-** hot_standby: "on"**
-
-**
-
-** \# Número máximo de procesos de replicación.**
-
-** max_wal_senders: 10**
-
-**
-
-** \# Número máximo de replication slots.**
-
-** max_replication_slots: 10**
-
-**
-
-** \# Cantidad mínima de WAL que se conserva.**
-
-** wal_keep_size: 256MB**
-
-**
-
-** \# -----------------------------------------------------------------**
-
-** \# Opciones utilizadas cuando Patroni inicializa PostgreSQL**
-
-** \# por primera vez.**
-
-** \# -----------------------------------------------------------------**
-
-** initdb:**
-
-**
-
-** \# Base de datos en UTF8.**
-
-**  - encoding: UTF8**
-
-**
-
-** \# Activa checksums para detectar corrupción de datos.**
-
-**  - data-checksums**
-
-**
-
-** \# -----------------------------------------------------------------**
-
-** \# Reglas de autenticación (pg_hba.conf)**
-
-** \# Patroni generará automáticamente este fichero.**
-
-** \# -----------------------------------------------------------------**
-
-** pg_hba:**
-
-**
-
-** \# Permite replicación desde la red interna.**
-
-**  - host replication replicator 192.168.10.0/24 scram-sha-256**
-
-**
-
-** \# Permite conexiones normales desde la red interna.**
-
-**  - host all all 192.168.10.0/24 scram-sha-256**
-
-**
-
-** \# Permite conexiones locales TCP.**
-
-**  - host all all 127.0.0.1/32 scram-sha-256**
-
-**
-
-** \# Conexiones locales mediante socket Unix.**
-
-**  - local all all peer**
-
-**
-
-** \# -----------------------------------------------------------------**
-
-** \# Usuarios creados automáticamente al inicializar el clúster.**
-
-** \# -----------------------------------------------------------------**
-
-** users:**
-
-**
-
-** rewind_user:**
-
-**
-
-** password: <REWIND_PASSWORD>**
-
-**
-
-** options:**
-
-**  - createrole**
-
-**  - createdb**
-
-**
-
-**\# -------------------------------------------------------------------**
-
-**\# Configuración local de PostgreSQL**
-
-**\# -------------------------------------------------------------------**
-
-**postgresql:**
-
-**
-
-** \# Dirección donde PostgreSQL escuchará conexiones.**
-
-** listen: 0.0.0.0:5432**
-
-**
-
-** \# Dirección que utilizarán clientes y réplicas.**
-
-** connect_address: 192.168.10.21:5432**
-
-**
-
-** \# Directorio de datos PostgreSQL.**
-
-** data_dir: /var/lib/pgsql/18/data**
-
-**
-
-** \# Ruta de los binarios PostgreSQL.**
-
-** bin_dir: /usr/pgsql-18/bin**
-
-**
-
-** \# -----------------------------------------------------------------**
-
-** \# Usuarios utilizados internamente por Patroni.**
-
-** \# -----------------------------------------------------------------**
-
-** authentication:**
-
-**
-
-** \# Usuario para replicación física.**
-
-** replication:**
-
-** username: replicator**
-
-** password: <REPLICATOR_PASSWORD>**
-
-**
-
-** \# Superusuario PostgreSQL.**
-
-** superuser:**
-
-** username: postgres**
-
-** password: <POSTGRES_PASSWORD>**
-
-**
-
-** \# Usuario utilizado por pg_rewind.**
-
-** rewind:**
-
-** username: rewind_user**
-
-** password: <REWIND_PASSWORD>**
-
-**
-
-** \# Directorio de sockets Unix.**
-
-** parameters:**
-
-** unix_socket_directories: /var/run/postgresql**
-
-**
-
-** \# Método utilizado para crear nuevas réplicas.**
-
-** create_replica_methods:**
-
-**  - basebackup**
-
-**
-
-** \# Opciones de pg_basebackup.**
-
-** basebackup:**
-
-**
-
-** \# Fuerza un checkpoint rápido antes del backup.**
-
-** checkpoint: fast**
-
-**
-
-**\# -------------------------------------------------------------------**
-
-**\# Etiquetas del nodo.**
-
-**\# Permiten controlar el comportamiento de Patroni.**
-
-**\# -------------------------------------------------------------------**
-
-**tags:**
-
-**
-
-** \# Si es true, este nodo nunca será promocionado.**
-
-** nofailover: false**
-
-**
-
-** \# Si es true, no se usará para balanceo de lectura.**
-
-** noloadbalance: false**
-
-**
-
-** \# Si es true, se preferirá este nodo para clonar réplicas.**
-
-** clonefrom: false**
-
-**
-
-** \# Si es true, no participará como réplica síncrona.**
-
-** nosync: false**
-
-**EOF**
-
-**
-
-**postgresql2** - 192.168.10.22**
-
-**cat \> /etc/patroni/patroni.yml \<\<'EOF'**
-
-**scope: postgres-ha**
-
-**namespace: /service/**
-
-**name: postgresql2**
-
-**
-
-**restapi:**
-
-** listen: 0.0.0.0:8008**
-
-** connect_address: 192.168.10.22:8008**
-
-**
-
-**etcd3:**
-
-** hosts:**
-
-**  - 192.168.10.21:2379**
-
-**  - 192.168.10.22:2379**
-
-**  - 192.168.10.23:2379**
-
-**  - 192.168.10.30:2379**
-
-**  - 192.168.10.31:2379**
-
-**
-
-**bootstrap:**
-
-** dcs:**
-
-** ttl: 30**
-
-** loop_wait: 10**
-
-** retry_timeout: 10**
-
-** maximum_lag_on_failover: 1048576**
-
-**
-
-** postgresql:**
-
-** use_pg_rewind: true**
-
-** use_slots: true**
-
-** parameters:**
-
-** wal_level: replica**
-
-** hot_standby: "on"**
-
-** max_wal_senders: 10**
-
-** max_replication_slots: 10**
-
-** wal_keep_size: 256MB**
-
-**
-
-** initdb:**
-
-**  - encoding: UTF8**
-
-**  - data-checksums**
-
-**
-
-** pg_hba:**
-
-**  - host replication replicator 192.168.10.0/24 scram-sha-256**
-
-**  - host all all 192.168.10.0/24 scram-sha-256**
-
-**  - host all all 127.0.0.1/32 scram-sha-256**
-
-**  - local all all peer**
-
-**
-
-** users:**
-
-** rewind_user:**
-
-** password: <REWIND_PASSWORD>**
-
-** options:**
-
-**  - createrole**
-
-**  - createdb**
-
-**
-
-**postgresql:**
-
-** listen: 0.0.0.0:5432**
-
-** connect_address: 192.168.10.22:5432**
-
-** data_dir: /var/lib/pgsql/18/data**
-
-** bin_dir: /usr/pgsql-18/bin**
-
-**
-
-** authentication:**
-
-** replication:**
-
-** username: replicator**
-
-** password: <REPLICATOR_PASSWORD>**
-
-** superuser:**
-
-** username: postgres**
-
-** password: <POSTGRES_PASSWORD>**
-
-** rewind:**
-
-** username: rewind_user**
-
-** password: <REWIND_PASSWORD>**
-
-**
-
-** parameters:**
-
-** unix_socket_directories: /var/run/postgresql**
-
-**
-
-** create_replica_methods:**
-
-**  - basebackup**
-
-**
-
-** basebackup:**
-
-** checkpoint: fast**
-
-**
-
-**tags:**
-
-** nofailover: false**
-
-** noloadbalance: false**
-
-** clonefrom: false**
-
-** nosync: false**
-
-**EOF**
-
-**postgresql**3** - 192.168.10.23**
-
-**
-
-**cat \> /etc/patroni/patroni.yml \<\<'EOF'**
-
-**scope: postgres-ha**
-
-**namespace: /service/**
-
-**name: postgresql3**
-
-**
-
-**restapi:**
-
-** listen: 0.0.0.0:8008**
-
-** connect_address: 192.168.10.23:8008**
-
-**
-
-**etcd3:**
-
-** hosts:**
-
-**  - 192.168.10.21:2379**
-
-**  - 192.168.10.22:2379**
-
-**  - 192.168.10.23:2379**
-
-**  - 192.168.10.30:2379**
-
-**  - 192.168.10.31:2379**
-
-**
-
-**bootstrap:**
-
-** dcs:**
-
-** ttl: 30**
-
-** loop_wait: 10**
-
-** retry_timeout: 10**
-
-** maximum_lag_on_failover: 1048576**
-
-**
-
-** postgresql:**
-
-** use_pg_rewind: true**
-
-** use_slots: true**
-
-** parameters:**
-
-** wal_level: replica**
-
-** hot_standby: "on"**
-
-** max_wal_senders: 10**
-
-** max_replication_slots: 10**
-
-** wal_keep_size: 256MB**
-
-**
-
-** initdb:**
-
-**  - encoding: UTF8**
-
-**  - data-checksums**
-
-**
-
-** pg_hba:**
-
-**  - host replication replicator 192.168.10.0/24 scram-sha-256**
-
-**  - host all all 192.168.10.0/24 scram-sha-256**
-
-**  - host all all 127.0.0.1/32 scram-sha-256**
-
-**  - local all all peer**
-
-**
-
-** users:**
-
-** rewind_user:**
-
-** password: <REWIND_PASSWORD>**
-
-** options:**
-
-**  - createrole**
-
-**  - createdb**
-
-**
-
-**postgresql:**
-
-** listen: 0.0.0.0:5432**
-
-** connect_address: 192.168.10.23:5432**
-
-** data_dir: /var/lib/pgsql/18/data**
-
-** bin_dir: /usr/pgsql-18/bin**
-
-**
-
-** authentication:**
-
-** replication:**
-
-** username: replicator**
-
-** password: <REPLICATOR_PASSWORD>**
-
-** superuser:**
-
-** username: postgres**
-
-** password: <POSTGRES_PASSWORD>**
-
-** rewind:**
-
-** username: rewind_user**
-
-** password: <REWIND_PASSWORD>**
-
-**
-
-** parameters:**
-
-** unix_socket_directories: /var/run/postgresql**
-
-**
-
-** create_replica_methods:**
-
-**  - basebackup**
-
-**
-
-** basebackup:**
-
-** checkpoint: fast**
-
-**
-
-**tags:**
-
-** nofailover: false**
-
-** noloadbalance: false**
-
-** clonefrom: false**
-
-** nosync: false**
-
-**EOF**
-
-**
-
-**Modificar propietarios y permisos**
-
-**
+  - Usuario utilizado por pg_rewind para ayudar a reintegrar un antiguo Primary como réplica después de un failover.
+
+**postgresql1 - 192.168.10.21**
+
+```yaml
+cat > /etc/patroni/patroni.yml <<'EOF'
+# Nombre del clúster PostgreSQL.
+# Todos los nodos deben tener el mismo "scope".
+scope: postgres-ha
+# Ruta (namespace) donde Patroni almacenará la información del clúster en etcd.
+namespace: /service/
+# Nombre único de este nodo dentro del clúster.
+# Debe ser distinto en cada servidor.
+name: postgresql1
+# -------------------------------------------------------------------
+# API REST de Patroni
+# Se utiliza para administración, monitorización y failover.
+# -------------------------------------------------------------------
+restapi:
+  # Dirección donde escucha la API REST.
+  listen: 0.0.0.0:8008
+  # Dirección mediante la cual el resto de nodos accederán a este Patroni.
+  connect_address: 192.168.10.21:8008
+# -------------------------------------------------------------------
+# Configuración del clúster etcd
+# Patroni utiliza etcd para decidir quién es el Primary y
+# coordinar las promociones y failovers.
+# -------------------------------------------------------------------
+etcd3:
+  hosts:
+    - 192.168.10.21:2379
+    - 192.168.10.22:2379
+    - 192.168.10.23:2379
+    - 192.168.10.30:2379
+    - 192.168.10.31:2379
+# -------------------------------------------------------------------
+# Configuración inicial del clúster PostgreSQL.
+# SOLO se ejecuta la primera vez que se crea el clúster.
+# Después la configuración se almacena en etcd.
+# -------------------------------------------------------------------
+bootstrap:
+  dcs:
+    # Tiempo (segundos) que un nodo mantiene el "liderazgo"
+    # si deja de comunicarse con etcd.
+    ttl: 30
+    # Cada cuántos segundos Patroni comprueba el estado del clúster.
+    loop_wait: 10
+    # Tiempo máximo para reintentar operaciones antes de considerarlas fallidas.
+    retry_timeout: 10
+    # Máximo retraso permitido de una réplica para poder promocionarla.
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      # Permite usar pg_rewind para reintegrar rápidamente
+      # un antiguo Primary al clúster.
+      use_pg_rewind: true
+      # Activa replication slots.
+      # Evita perder WAL cuando una réplica está desconectada.
+      use_slots: true
+      # Parámetros que Patroni aplicará a PostgreSQL.
+      parameters:
+        # Necesario para replicación física.
+        wal_level: replica
+        # Permite consultas de solo lectura en réplicas.
+        hot_standby: "on"
+        # Número máximo de procesos de replicación.
+        max_wal_senders: 10
+        # Número máximo de replication slots.
+        max_replication_slots: 10
+        # Cantidad mínima de WAL que se conserva.
+        wal_keep_size: 256MB
+      # -----------------------------------------------------------------
+      # Opciones utilizadas cuando Patroni inicializa PostgreSQL
+      # por primera vez.
+      # -----------------------------------------------------------------
+      initdb:
+        # Base de datos en UTF8.
+        - encoding: UTF8
+        # Activa checksums para detectar corrupción de datos.
+        - data-checksums
+      # -----------------------------------------------------------------
+      # Reglas de autenticación (pg_hba.conf)
+      # Patroni generará automáticamente este fichero.
+      # -----------------------------------------------------------------
+      pg_hba:
+        # Permite replicación desde la red interna.
+        - host replication replicator 192.168.10.0/24 scram-sha-256
+        # Permite conexiones normales desde la red interna.
+        - host all all 192.168.10.0/24 scram-sha-256
+        # Permite conexiones locales TCP.
+        - host all all 127.0.0.1/32 scram-sha-256
+        # Conexiones locales mediante socket Unix.
+        - local all all peer
+      # -----------------------------------------------------------------
+      # Usuarios creados automáticamente al inicializar el clúster.
+      # -----------------------------------------------------------------
+      users:
+        rewind_user:
+          password: <REWIND_PASSWORD>
+          options:
+            - createrole
+            - createdb
+# -------------------------------------------------------------------
+# Configuración local de PostgreSQL
+# -------------------------------------------------------------------
+postgresql:
+  # Dirección donde PostgreSQL escuchará conexiones.
+  listen: 0.0.0.0:5432
+  # Dirección que utilizarán clientes y réplicas.
+  connect_address: 192.168.10.21:5432
+  # Directorio de datos PostgreSQL.
+  data_dir: /var/lib/pgsql/18/data
+  # Ruta de los binarios PostgreSQL.
+  bin_dir: /usr/pgsql-18/bin
+  # -----------------------------------------------------------------
+  # Usuarios utilizados internamente por Patroni.
+  # -----------------------------------------------------------------
+  authentication:
+    # Usuario para replicación física.
+    replication:
+      username: replicator
+      password: <REPLICATOR_PASSWORD>
+    # Superusuario PostgreSQL.
+    superuser:
+      username: postgres
+      password: <POSTGRES_PASSWORD>
+    # Usuario utilizado por pg_rewind.
+    rewind:
+      username: rewind_user
+      password: <REWIND_PASSWORD>
+  # Directorio de sockets Unix.
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+  # Método utilizado para crear nuevas réplicas.
+  create_replica_methods:
+    - basebackup
+  # Opciones de pg_basebackup.
+  basebackup:
+    # Fuerza un checkpoint rápido antes del backup.
+    checkpoint: fast
+# -------------------------------------------------------------------
+# Etiquetas del nodo.
+# Permiten controlar el comportamiento de Patroni.
+# -------------------------------------------------------------------
+tags:
+  # Si es true, este nodo nunca será promocionado.
+  nofailover: false
+  # Si es true, no se usará para balanceo de lectura.
+  noloadbalance: false
+  # Si es true, se preferirá este nodo para clonar réplicas.
+  clonefrom: false
+  # Si es true, no participará como réplica síncrona.
+  nosync: false
+EOF
+```
+
+**postgresql2 - 192.168.10.22**
+
+```yaml
+cat > /etc/patroni/patroni.yml <<'EOF'
+scope: postgres-ha
+namespace: /service/
+name: postgresql2
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: 192.168.10.22:8008
+etcd3:
+  hosts:
+    - 192.168.10.21:2379
+    - 192.168.10.22:2379
+    - 192.168.10.23:2379
+    - 192.168.10.30:2379
+    - 192.168.10.31:2379
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: replica
+        hot_standby: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 256MB
+      initdb:
+        - encoding: UTF8
+        - data-checksums
+      pg_hba:
+        - host replication replicator 192.168.10.0/24 scram-sha-256
+        - host all all 192.168.10.0/24 scram-sha-256
+        - host all all 127.0.0.1/32 scram-sha-256
+        - local all all peer
+      users:
+        rewind_user:
+          password: <REWIND_PASSWORD>
+          options:
+            - createrole
+            - createdb
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: 192.168.10.22:5432
+  data_dir: /var/lib/pgsql/18/data
+  bin_dir: /usr/pgsql-18/bin
+  authentication:
+    replication:
+      username: replicator
+      password: <REPLICATOR_PASSWORD>
+    superuser:
+      username: postgres
+      password: <POSTGRES_PASSWORD>
+    rewind:
+      username: rewind_user
+      password: <REWIND_PASSWORD>
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+  create_replica_methods:
+    - basebackup
+  basebackup:
+    checkpoint: fast
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
+EOF
+```
+
+**postgresql3 - 192.168.10.23**
+
+```yaml
+cat > /etc/patroni/patroni.yml <<'EOF'
+scope: postgres-ha
+namespace: /service/
+name: postgresql3
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: 192.168.10.23:8008
+etcd3:
+  hosts:
+    - 192.168.10.21:2379
+    - 192.168.10.22:2379
+    - 192.168.10.23:2379
+    - 192.168.10.30:2379
+    - 192.168.10.31:2379
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: replica
+        hot_standby: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 256MB
+      initdb:
+        - encoding: UTF8
+        - data-checksums
+      pg_hba:
+        - host replication replicator 192.168.10.0/24 scram-sha-256
+        - host all all 192.168.10.0/24 scram-sha-256
+        - host all all 127.0.0.1/32 scram-sha-256
+        - local all all peer
+      users:
+        rewind_user:
+          password: <REWIND_PASSWORD>
+          options:
+            - createrole
+            - createdb
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: 192.168.10.23:5432
+  data_dir: /var/lib/pgsql/18/data
+  bin_dir: /usr/pgsql-18/bin
+  authentication:
+    replication:
+      username: replicator
+      password: <REPLICATOR_PASSWORD>
+    superuser:
+      username: postgres
+      password: <POSTGRES_PASSWORD>
+    rewind:
+      username: rewind_user
+      password: <REWIND_PASSWORD>
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+  create_replica_methods:
+    - basebackup
+  basebackup:
+    checkpoint: fast
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
+EOF
+```
+
+Modificar propietarios y permisos
 
 - chown postgres:postgres /etc/patroni/patroni.yml
 
@@ -1292,63 +758,37 @@ En los 3 nodos patroni crear el fichero
 
 Añade:
 
+```ini
 [Unit]
-
-\# Descripción del servicio
-
+# Descripción del servicio
 Description=Patroni PostgreSQL High Availability
-
-\# Documentación oficial de Patroni
-
+# Documentación oficial de Patroni
 Documentation=https://patroni.readthedocs.io
-
-\# Arranca después de que la red y etcd estén disponibles
-
+# Arranca después de que la red y etcd estén disponibles
 After=network-online.target etcd.service
-
 Wants=network-online.target
-
 [Service]
-
-\# Patroni se ejecuta como proceso principal
-
+# Patroni se ejecuta como proceso principal
 Type=simple
-
-\# Ejecuta Patroni con el usuario de PostgreSQL
-
+# Ejecuta Patroni con el usuario de PostgreSQL
 User=postgres
-
 Group=postgres
-
-\# Define el fichero de configuración de Patroni
-
+# Define el fichero de configuración de Patroni
 Environment=PATRONI_CONFIGURATION=/etc/patroni/patroni.yml
-
-\# Ejecuta Patroni desde su entorno virtual
-
+# Ejecuta Patroni desde su entorno virtual
 ExecStart=/opt/patroni/bin/patroni /etc/patroni/patroni.yml
-
-\# Reinicia Patroni automáticamente si falla
-
+# Reinicia Patroni automáticamente si falla
 Restart=always
-
 RestartSec=5
-
-\# Límite máximo de descriptores de archivos abiertos
-
+# Límite máximo de descriptores de archivos abiertos
 LimitNOFILE=65536
-
-\# Tiempo máximo para las operaciones de arranque/parada
-
+# Tiempo máximo para las operaciones de arranque/parada
 TimeoutSec=30
-
 [Install]
-
-\# Permite iniciar Patroni automáticamente al arrancar el sistema
-
+# Permite iniciar Patroni automáticamente al arrancar el sistema
 WantedBy=multi-user.target
-
 Recargar systemd
+```
 
 - systemctl daemon-reload
 
@@ -1367,7 +807,7 @@ Todo ello debe hacerse con el usuario propietario de PostgreSQL (postgres).
 
 ## 4. Inicializar el clúster
 
-**Comprobaciones previas** **en los 3 nodos postgresql/patroni**
+Comprobaciones previas en los 3 nodos postgresql/patroni
 
 PostgreSQL debe estar parado- Debe aparecer:inactive (dead)
 
@@ -1403,13 +843,13 @@ En postgresql1:
 
 Patroni detectará que no existe ningún clúster en etcd y:
 
-1.  Inicializará PostgreSQL mediante initdb
-2.  Creará el clúster PostgreSQL
-3.  Creará/configurará los usuarios necesarios (postgres, replicator y rewind_user).
-4.  Arrancará PostgreSQL en el primer nodo como Primary.
-5.  Registrará en etcd el estado y la información de coordinación del clúster.
+1. Inicializará PostgreSQL mediante initdb
+2. Creará el clúster PostgreSQL
+3. Creará/configurará los usuarios necesarios (postgres, replicator y rewind_user).
+4. Arrancará PostgreSQL en el primer nodo como Primary.
+5. Registrará en etcd el estado y la información de coordinación del clúster.
 
-Importante: No arranques todavía postgresql2 ni postgresql3. Primero vamos a comprobar que postgresql1 se convierte correctamente en el Primary. Si todo va bien, entonces arrancaremos los otros dos y Patroni los clonará automáticamente mediante **pg_basebackup**.
+Importante: No arranques todavía postgresql2 ni postgresql3. Primero vamos a comprobar que postgresql1 se convierte correctamente en el Primary. Si todo va bien, entonces arrancaremos los otros dos y Patroni los clonará automáticamente mediante pg_basebackup.
 
 ![captura de terminal](media/Pictures/100002010000032B0000028592190990C027EF68.png)
 
@@ -1438,7 +878,7 @@ Ahora arranca Patroni en worker2 y después en worker3:
 
 - systemctl status patroni --no-pager
 
-Patroni detectará el primario y clonará automáticamente PostgreSQL mediante **pg_basebackup**.
+Patroni detectará el primario y clonará automáticamente PostgreSQL mediante pg_basebackup.
 
 Después, desde postgresql1, comprueba:
 
@@ -1448,15 +888,15 @@ Después, desde postgresql1, comprueba:
 
 ## 5. Modificar 'pg_hba.conf' después de crear el clúster
 
-En clúster gestionado por **Patroni**, no configurar directamente “**/var/lib/pgsql/18/data/pg_hba.conf**” del PostgreSQL tradicional. **Patroni es quien** **genera y administra ese fichero**. Por eso editarlo manualmente no es recomendable: el cambio puede funcionar temporalmente, pero Patroni puede **sobrescribirlo** posteriormente y además tendrías que repetirlo manualmente en los tres nodos.
+En clúster gestionado por Patroni, no configurar directamente “/var/lib/pgsql/18/data/pg_hba.conf” del PostgreSQL tradicional. Patroni es quien genera y administra ese fichero. Por eso editarlo manualmente no es recomendable: el cambio puede funcionar temporalmente, pero Patroni puede sobrescribirlo posteriormente y además tendrías que repetirlo manualmente en los tres nodos.
 
 Con Patroni modificas la configuración dinámica centralizada en etcd. Patroni conoce esas reglas y las aplica de forma coherente al clúster.
 
 etcd es la una única fuente de verdad y evitas que postgresql1, postgresql2 y postgresql3 terminen con reglas distintas.
 
-**Modificar**
+Modificar
 
-Una vez que el clúster Patroni ha sido inicializado, las reglas definidas dentro del bloque “**bootstrap**” se utiliza únicamente durante la creación inicial del clúster.
+Una vez que el clúster Patroni ha sido inicializado, las reglas definidas dentro del bloque “bootstrap” se utiliza únicamente durante la creación inicial del clúster.
 
 - vi /etc/patroni/patroni.yml
 
@@ -1472,13 +912,13 @@ Reglas necesarias para nuestro laboratorio
 
 ![captura de terminal](media/Pictures/100002010000024800000233AF22573E03BB3C6D.png)
 
-¿Por qué añadimos estas reglas? Las reglas de “**replicator**” permiten que las réplicas reciban los WAL del Primary y que Patroni pueda realizar las comprobaciones de replicación necesarias, incluyendo las conexiones locales por “127.0.0.1”
+¿Por qué añadimos estas reglas? Las reglas de “replicator” permiten que las réplicas reciban los WAL del Primary y que Patroni pueda realizar las comprobaciones de replicación necesarias, incluyendo las conexiones locales por “127.0.0.1”
 
-Las reglas de “**rewind_user**” son necesarias para “**pg_rewind**”. Después de un failover, el antiguo Primary puede quedar en un timeline anterior. Patroni utiliza “**pg_rewind**” para sincronizarlo con el nuevo Primary y reintegrarlo como réplica sin tener que reconstruirlo completamente.
+Las reglas de “rewind_user” son necesarias para “pg_rewind”. Después de un failover, el antiguo Primary puede quedar en un timeline anterior. Patroni utiliza “pg_rewind” para sincronizarlo con el nuevo Primary y reintegrarlo como réplica sin tener que reconstruirlo completamente.
 
 La ausencia de estas reglas impide que antiguo nodo primary pasara correctamente del timeline anterior al nuevo.
 
-**Aplicar los cambios**
+Aplicar los cambios
 
 Después de guardar los cambios con “edit-config”:
 
@@ -1510,8 +950,8 @@ En ambos nodos:
 
 - firewall-cmd --reload
 
-- **5432**: acceso al PostgreSQL primario.
-- **7000**: página de estadísticas de HAProxy.
+- 5432: acceso al PostgreSQL primario.
+- 7000: página de estadísticas de HAProxy.
 
 Crear la configuración
 
@@ -1521,139 +961,75 @@ En ambos nodos HAproxy:
 
 Después sustituye el contenido:
 
-cat \> /etc/haproxy/haproxy.cfg \<\<'EOF'
-
-\# Configuración global de HAProxy.
-
+```ini
+cat > /etc/haproxy/haproxy.cfg <<'EOF'
+# Configuración global de HAProxy.
 global
-
-\# Envía los logs al servidor syslog local.
-
+# Envía los logs al servidor syslog local.
 log 127.0.0.1 local2
-
-\# Aísla el proceso dentro de este directorio por seguridad.
-
+# Aísla el proceso dentro de este directorio por seguridad.
 chroot /var/lib/haproxy
-
-\# Archivo donde se almacena el PID del proceso.
-
+# Archivo donde se almacena el PID del proceso.
 pidfile /run/haproxy.pid
-
-\# Número máximo de conexiones simultáneas.
-
+# Número máximo de conexiones simultáneas.
 maxconn 4000
-
-\# Usuario y grupo con los que se ejecutará HAProxy.
-
+# Usuario y grupo con los que se ejecutará HAProxy.
 user haproxy
-
 group haproxy
-
-\# Ejecuta HAProxy en segundo plano.
-
+# Ejecuta HAProxy en segundo plano.
 daemon
-
-\# Configuración por defecto para todos los frontends y backends.
-
+# Configuración por defecto para todos los frontends y backends.
 defaults
-
-\# Trabaja a nivel TCP (ideal para PostgreSQL).
-
+# Trabaja a nivel TCP (ideal para PostgreSQL).
 mode tcp
-
-\# Usa la configuración global de logs.
-
+# Usa la configuración global de logs.
 log global
-
-\# Registra las conexiones TCP.
-
+# Registra las conexiones TCP.
 option tcplog
-
-\# No registra conexiones vacías.
-
+# No registra conexiones vacías.
 option dontlognull
-
-\# Reintenta una conexión fallida hasta 3 veces.
-
+# Reintenta una conexión fallida hasta 3 veces.
 retries 3
-
-\# Tiempo máximo para conectar con un servidor.
-
+# Tiempo máximo para conectar con un servidor.
 timeout connect 5s
-
-\# Tiempo máximo que puede permanecer abierta una conexión cliente.
-
+# Tiempo máximo que puede permanecer abierta una conexión cliente.
 timeout client 30m
-
-\# Tiempo máximo que puede permanecer abierta una conexión servidor.
-
+# Tiempo máximo que puede permanecer abierta una conexión servidor.
 timeout server 30m
-
-\# Tiempo máximo para realizar una comprobación de estado.
-
+# Tiempo máximo para realizar una comprobación de estado.
 timeout check 5s
-
-\# Punto de entrada de las conexiones PostgreSQL.
-
+# Punto de entrada de las conexiones PostgreSQL.
 frontend postgres_primary
-
-\# Escucha en el puerto 5432.
-
+# Escucha en el puerto 5432.
 bind \*:5432
-
-\# Envía todas las conexiones al backend patroni_primary.
-
+# Envía todas las conexiones al backend patroni_primary.
 default_backend patroni_primary
-
-\# Backend formado por los tres servidores PostgreSQL.
-
+# Backend formado por los tres servidores PostgreSQL.
 backend patroni_primary
-
-\# Comprueba el estado de Patroni mediante la API REST.
-
+# Comprueba el estado de Patroni mediante la API REST.
 option httpchk GET /primary
-
-\# Solo considera disponible un servidor si responde HTTP 200.
-
-\# El líder responde 200 y las réplicas responden 503.
-
+# Solo considera disponible un servidor si responde HTTP 200.
+# El líder responde 200 y las réplicas responden 503.
 http-check expect status 200
-
-\# Servidores PostgreSQL monitorizados por Patroni.
-
-\# El tráfico solo se enviará al que sea líder.
-
+# Servidores PostgreSQL monitorizados por Patroni.
+# El tráfico solo se enviará al que sea líder.
 server postgresql1 192.168.10.21:5432 check port 8008
-
 server postgresql2 192.168.10.22:5432 check port 8008
-
 server postgresql3 192.168.10.23:5432 check port 8008
-
-\# Página web de estadísticas de HAProxy.
-
+# Página web de estadísticas de HAProxy.
 listen stats
-
-\# Disponible en el puerto 7000.
-
+# Disponible en el puerto 7000.
 bind \*:7000
-
-\# Funciona mediante HTTP.
-
+# Funciona mediante HTTP.
 mode http
-
-\# Activa las estadísticas.
-
+# Activa las estadísticas.
 stats enable
-
-\# URL de acceso: http://IP:7000/
-
+# URL de acceso: http://IP:7000/
 stats uri /
-
-\# Refresca la página cada 5 segundos.
-
+# Refresca la página cada 5 segundos.
 stats refresh 5s
-
 EOF
+```
 
 ¿Qué hace esta configuración?
 
@@ -1693,9 +1069,9 @@ El líder debe devolver 200; las réplicas, normalmente 503.
 
 Hasta ahora los clientes se conectarían a HAproxy(192.168.10.30:5432). El problema es que, si HAProxy-1 falla, HAProxy-2 (192.168.10.31) seguiría funcionando, pero los clientes tendrían que cambiar manualmente la IP de conexión. Por tanto, todavía tendríamos un punto único de fallo.
 
-Para solucionarlo utilizamos Keepalived, que proporciona una **IP virtual flotante** (VIP) compartida entre ambos HAProxy:** VIP: 192.168.10.32**
+Para solucionarlo utilizamos Keepalived, que proporciona una IP virtual flotante (VIP) compartida entre ambos HAProxy: VIP: 192.168.10.32
 
-Keepalived mantiene la VIP normalmente en HAProxy-1. Si este nodo falla, la VIP pasa automáticamente a HAProxy-2. Los clientes siempre se conectan a: **192.168.10.32:5432**
+Keepalived mantiene la VIP normalmente en HAProxy-1. Si este nodo falla, la VIP pasa automáticamente a HAProxy-2. Los clientes siempre se conectan a: 192.168.10.32:5432
 
 ![captura de terminal](media/Pictures/1000020100000148000001188792468791AD0791.png)
 
@@ -1703,7 +1079,7 @@ Keepalived mantiene la VIP normalmente en HAProxy-1. Si este nodo falla, la VIP 
 
 De esta forma, los clientes utilizan siempre la misma IP, independientemente de qué HAProxy esté activo.
 
-Configuraremos Keepalived mediante **VRRP en modo unicast**, especialmente adecuado para entornos virtualizados donde el tráfico multicast puede estar limitado o no ser conveniente.
+Configuraremos Keepalived mediante VRRP en modo unicast, especialmente adecuado para entornos virtualizados donde el tráfico multicast puede estar limitado o no ser conveniente.
 
 Instalar Keepalived
 
@@ -1715,182 +1091,98 @@ Crear el script de comprobación de HAProxy
 
 En ambos nodos:
 
-cat \> /usr/local/bin/check_haproxy.sh \<\<'EOF'
-
-\#!/bin/bash
-
-\# Comprueba si el servicio HAProxy está activo.
-
-\# --quiet no muestra salida, solo devuelve un código:
-
-\# 0 -\> HAProxy está activo.
-
-\# 3 -\> HAProxy está detenido.
-
-\# Keepalived utiliza este código para decidir si mantiene
-
-\# o reduce la prioridad del nodo.
-
+```bash
+cat > /usr/local/bin/check_haproxy.sh <<'EOF'
+#!/bin/bash
+# Comprueba si el servicio HAProxy está activo.
+# --quiet no muestra salida, solo devuelve un código:
+# 0 -> HAProxy está activo.
+# 3 -> HAProxy está detenido.
+# Keepalived utiliza este código para decidir si mantiene
+# o reduce la prioridad del nodo.
 /usr/bin/systemctl is-active --quiet haproxy
-
 -chmod 750 /usr/local/bin/check_haproxy.sh
-
 Este script no hace más que comprobar si HAProxy está en ejecución. Si está activo, Keepalived mantiene la prioridad del nodo; si está parado, reduce la prioridad y permite que el otro servidor tome la VIP. Este script devuelve:
-
 - éxito si HAProxy está funcionando;
 - error si HAProxy está detenido.
-
 Keepalived usará el resultado para decidir si ese nodo puede mantener la VIP.
-
 Configurar keepalived en nodo HAProxy-1
-
 - cp /etc/keepalived/keepalived.conf / etc/keepalived/keepalived.conf.bak
-
 -Añadir:
-
-cat \> /etc/keepalived/keepalived.conf \<\<'EOF'
-
-\# Configuración global de Keepalived.
-
+cat > /etc/keepalived/keepalived.conf <<'EOF'
+# Configuración global de Keepalived.
 global_defs {
-
-\# Identificador único de este servidor.
-
-\# Indica que este archivo pertenece al primer nodo HAProxy.
-
+# Identificador único de este servidor.
+# Indica que este archivo pertenece al primer nodo HAProxy.
 router_id HAPROXY_1
-
-\# Activa controles de seguridad para los scripts externos.
-
+# Activa controles de seguridad para los scripts externos.
 enable_script_security
-
-\# Ejecuta los scripts de comprobación como usuario root.
-
+# Ejecuta los scripts de comprobación como usuario root.
 script_user root
-
 }
-
-\# Define la comprobación del estado de HAProxy.
-
+# Define la comprobación del estado de HAProxy.
 vrrp_script check_haproxy {
-
-\# Script que comprueba si el servicio HAProxy está activo.
-
+# Script que comprueba si el servicio HAProxy está activo.
 script "/usr/local/bin/check_haproxy.sh"
-
-\# Ejecuta la comprobación cada 2 segundos.
-
+# Ejecuta la comprobación cada 2 segundos.
 interval 2
-
-\# Si tarda más de 2 segundos, la comprobación se considera fallida.
-
+# Si tarda más de 2 segundos, la comprobación se considera fallida.
 timeout 2
-
-\# HAProxy se considera caído después de 2 fallos consecutivos.
-
+# HAProxy se considera caído después de 2 fallos consecutivos.
 fall 2
-
-\# HAProxy se considera recuperado después de 2 comprobaciones correctas.
-
+# HAProxy se considera recuperado después de 2 comprobaciones correctas.
 rise 2
-
-\# Si el script falla, resta 30 puntos a la prioridad del nodo.
-
-\# La prioridad pasaría de 110 a 80.
-
+# Si el script falla, resta 30 puntos a la prioridad del nodo.
+# La prioridad pasaría de 110 a 80.
 weight -30
-
 }
-
-\# Define la instancia VRRP encargada de gestionar la VIP de PostgreSQL.
-
+# Define la instancia VRRP encargada de gestionar la VIP de PostgreSQL.
 vrrp_instance VI_POSTGRES {
-
-\# Este nodo parte como MASTER y normalmente tendrá la VIP.
-
+# Este nodo parte como MASTER y normalmente tendrá la VIP.
 state MASTER
-
-\# Interfaz de red por la que se comunican los nodos
-
-\# y en la que se asignará la VIP.
-
+# Interfaz de red por la que se comunican los nodos
+# y en la que se asignará la VIP.
 interface enp1s0
-
-\# Identificador del grupo VRRP.
-
-\# Debe ser exactamente el mismo en HAProxy-1 y HAProxy-2.
-
+# Identificador del grupo VRRP.
+# Debe ser exactamente el mismo en HAProxy-1 y HAProxy-2.
 virtual_router_id 51
-
-\# Prioridad de este nodo.
-
-\# Como HAProxy-1 tiene 110 y HAProxy-2 tiene 100,
-
-\# HAProxy-1 será normalmente el nodo activo.
-
+# Prioridad de este nodo.
+# Como HAProxy-1 tiene 110 y HAProxy-2 tiene 100,
+# HAProxy-1 será normalmente el nodo activo.
 priority 110
-
-\# Envía anuncios VRRP cada segundo.
-
+# Envía anuncios VRRP cada segundo.
 advert_int 1
-
-\# IP real de este servidor HAProxy-1.
-
-\# Se utiliza como origen de los mensajes VRRP unicast.
-
+# IP real de este servidor HAProxy-1.
+# Se utiliza como origen de los mensajes VRRP unicast.
 unicast_src_ip 192.168.10.30
-
-\# IP real del otro servidor Keepalived.
-
+# IP real del otro servidor Keepalived.
 unicast_peer {
-
 192.168.10.31
-
 }
-
-\# Autenticación básica entre los dos nodos VRRP.
-
+# Autenticación básica entre los dos nodos VRRP.
 authentication {
-
-\# Usa autenticación mediante contraseña.
-
+# Usa autenticación mediante contraseña.
 auth_type PASS
-
-\# Contraseña compartida entre HAProxy-1 y HAProxy-2.
-
-\# Debe coincidir en ambos nodos.
-
+# Contraseña compartida entre HAProxy-1 y HAProxy-2.
+# Debe coincidir en ambos nodos.
 auth_pass pgvip123
-
 }
-
-\# Dirección IP virtual que se moverá entre los dos HAProxy.
-
+# Dirección IP virtual que se moverá entre los dos HAProxy.
 virtual_ipaddress {
-
-\# VIP utilizada por las aplicaciones para conectarse a PostgreSQL.
-
+# VIP utilizada por las aplicaciones para conectarse a PostgreSQL.
 192.168.10.32/24 dev enp1s0
-
 }
-
-\# Relaciona el estado de HAProxy con la prioridad VRRP.
-
+# Relaciona el estado de HAProxy con la prioridad VRRP.
 track_script {
-
-\# Si esta comprobación falla, se aplica weight -30.
-
+# Si esta comprobación falla, se aplica weight -30.
 check_haproxy
-
 }
-
 }
-
-\# Fin del contenido escrito en el archivo.
-
+# Fin del contenido escrito en el archivo.
 EOF
+```
 
-En condiciones normales, **HAProxy-1 mantiene la VIP porque tiene prioridad 110**. Si HAProxy-1 falla, baja a 80, mientras HAProxy-2 mantiene 100 y toma la VIP 192.168.10.32.
+En condiciones normales, HAProxy-1 mantiene la VIP porque tiene prioridad 110. Si HAProxy-1 falla, baja a 80, mientras HAProxy-2 mantiene 100 y toma la VIP 192.168.10.32.
 
 Configurar keepalived en nodo HAProxy-2
 
@@ -1898,149 +1190,81 @@ Configurar keepalived en nodo HAProxy-2
 
 -Añadir:
 
-cat \> /etc/keepalived/keepalived.conf \<\<'EOF'
-
-\# Configuración global de Keepalived.
-
+```ini
+cat > /etc/keepalived/keepalived.conf <<'EOF'
+# Configuración global de Keepalived.
 global_defs {
-
-\# Identificador único de este nodo.
-
-\# En este caso representa al segundo servidor HAProxy.
-
+# Identificador único de este nodo.
+# En este caso representa al segundo servidor HAProxy.
 router_id HAPROXY_2
-
-\# Obliga a Keepalived a aplicar controles de seguridad
-
-\# sobre los scripts que ejecuta.
-
+# Obliga a Keepalived a aplicar controles de seguridad
+# sobre los scripts que ejecuta.
 enable_script_security
-
-\# Indica que los scripts serán ejecutados como usuario root.
-
+# Indica que los scripts serán ejecutados como usuario root.
 script_user root
-
 }
-
-\# Define un script de comprobación de salud.
-
+# Define un script de comprobación de salud.
 vrrp_script check_haproxy {
-
-\# Script que verifica si HAProxy está activo.
-
+# Script que verifica si HAProxy está activo.
 script "/usr/local/bin/check_haproxy.sh"
-
-\# Ejecuta el script cada 2 segundos.
-
+# Ejecuta el script cada 2 segundos.
 interval 2
-
-\# Si el script tarda más de 2 segundos, se considera fallo.
-
+# Si el script tarda más de 2 segundos, se considera fallo.
 timeout 2
-
-\# Necesita 2 fallos consecutivos para considerar HAProxy caído.
-
+# Necesita 2 fallos consecutivos para considerar HAProxy caído.
 fall 2
-
-\# Necesita 2 comprobaciones correctas consecutivas para considerarlo recuperado.
-
+# Necesita 2 comprobaciones correctas consecutivas para considerarlo recuperado.
 rise 2
-
-\# Si el script falla, reduce la prioridad de este nodo en 30 puntos.
-
+# Si el script falla, reduce la prioridad de este nodo en 30 puntos.
 weight -30
-
 }
-
-\# Define la instancia VRRP que controla la IP virtual.
-
+# Define la instancia VRRP que controla la IP virtual.
 vrrp_instance VI_POSTGRES {
-
-\# Este nodo empieza como BACKUP.
-
-\# Solo tendrá la VIP si el nodo MASTER falla.
-
+# Este nodo empieza como BACKUP.
+# Solo tendrá la VIP si el nodo MASTER falla.
 state BACKUP
-
-\# Interfaz de red por la que funcionará VRRP y se asignará la VIP.
-
+# Interfaz de red por la que funcionará VRRP y se asignará la VIP.
 interface enp1s0
-
-\# Identificador común del grupo VRRP.
-
-\# Debe ser igual en HAProxy-1 y HAProxy-2.
-
+# Identificador común del grupo VRRP.
+# Debe ser igual en HAProxy-1 y HAProxy-2.
 virtual_router_id 51
-
-\# Prioridad de este nodo.
-
-\# Como tiene 100 y HAProxy-1 tiene 110, normalmente será BACKUP.
-
+# Prioridad de este nodo.
+# Como tiene 100 y HAProxy-1 tiene 110, normalmente será BACKUP.
 priority 100
-
-\# Envía anuncios VRRP cada 1 segundo.
-
+# Envía anuncios VRRP cada 1 segundo.
 advert_int 1
-
-\# IP real de este servidor HAProxy-2.
-
-\# Se usa porque VRRP está configurado en modo unicast.
-
+# IP real de este servidor HAProxy-2.
+# Se usa porque VRRP está configurado en modo unicast.
 unicast_src_ip 192.168.10.31
-
-\# IP del otro nodo participante en VRRP.
-
+# IP del otro nodo participante en VRRP.
 unicast_peer {
-
 192.168.10.30
-
 }
-
-\# Autenticación básica entre los nodos VRRP.
-
+# Autenticación básica entre los nodos VRRP.
 authentication {
-
-\# Tipo de autenticación por contraseña.
-
+# Tipo de autenticación por contraseña.
 auth_type PASS
-
-\# Contraseña compartida.
-
-\# Debe ser igual en ambos nodos.
-
+# Contraseña compartida.
+# Debe ser igual en ambos nodos.
 auth_pass pgvip123
-
 }
-
-\# IP virtual que se moverá entre HAProxy-1 y HAProxy-2.
-
+# IP virtual que se moverá entre HAProxy-1 y HAProxy-2.
 virtual_ipaddress {
-
-\# VIP del servicio PostgreSQL.
-
-\# Se asignará a la interfaz enp1s0 del nodo activo.
-
+# VIP del servicio PostgreSQL.
+# Se asignará a la interfaz enp1s0 del nodo activo.
 192.168.10.32/24 dev enp1s0
-
 }
-
-\# Asocia la salud de HAProxy con la prioridad VRRP.
-
+# Asocia la salud de HAProxy con la prioridad VRRP.
 track_script {
-
-\# Si este script falla, se aplicará el weight -30.
-
+# Si este script falla, se aplicará el weight -30.
 check_haproxy
-
 }
-
 }
-
-\# Fin del bloque que se escribe en el archivo.
-
+# Fin del bloque que se escribe en el archivo.
 EOF
+```
 
-En resumen, este archivo configura **HAProxy-2** como **BACKUP**. Si **HAProxy-1** deja de estar disponible o su HAProxy falla, **HAProxy-2** aumenta su posición relativa y toma la VIP **192.168.10.32**
+En resumen, este archivo configura HAProxy-2 como BACKUP. Si HAProxy-1 deja de estar disponible o su HAProxy falla, HAProxy-2 aumenta su posición relativa y toma la VIP 192.168.10.32
 
 Abrir VRRP en el firewall
 
@@ -2070,9 +1294,9 @@ Primero en HAProxy-2 y después en HAProxy-1:
 
 Se recomienda arrancar primero HAProxy-2 (BACKUP) y después HAProxy-1 (MASTER) para que la transición inicial de VRRP sea ordenada.
 
-1.  HAProxy-2 arranca → al no detectar MASTER, puede asumir temporalmente la VIP.
-2.  HAProxy-1 arranca → tiene mayor prioridad, por lo que pasa a MASTER y toma la VIP.
-3.  HAProxy-2 → queda como BACKUP.
+1. HAProxy-2 arranca → al no detectar MASTER, puede asumir temporalmente la VIP.
+2. HAProxy-1 arranca → tiene mayor prioridad, por lo que pasa a MASTER y toma la VIP.
+3. HAProxy-2 → queda como BACKUP.
 
 Así puedes comprobar desde el principio que ambos nodos participan correctamente en VRRP y que la VIP puede moverse entre ellos.
 
@@ -2090,7 +1314,7 @@ En HAProxy-2 solo debería aparecer: 192.168.10.31/24
 
 La VIP queda inicialmente en HAProxy-1 porque tiene prioridad 110, superior a la prioridad 100 de HAProxy-2
 
-**Comprobar failover**
+Comprobar failover
 
 Keepalived funciona correctamente:
 
@@ -2100,7 +1324,7 @@ Keepalived funciona correctamente:
 
 Por tanto, HAProxy-1 está como MASTER y HAProxy-2 como BACKUP.
 
-\###############################################################################
+---
 
 VRRP Multicast (modo tradicional)
 
@@ -2145,9 +1369,9 @@ Inconveniente
 
 ¿Es unicast incorrecto en físico? No. Unicast también es totalmente válido en servidores físicos. Simplemente configuras explícitamente las IP de los dos nodos. Es más predecible y facilita saber exactamente entre qué servidores circulan los anuncios
 
-\###############################################################################
+---
 
-**Detener servicio haproxy en HAProxy-1**
+Detener servicio haproxy en HAProxy-1
 
 - systemctl stop haproxy
 
@@ -2160,7 +1384,7 @@ Espera unos segundos y comprueba:
 - En HAProxy-1 debería desaparecer: 192.168.10.32/24
 - En HAProxy-2 debería aparecer: 192.168.10.31/24 192.168.10.32/24
 
-**Recuperar servicio haproxy en HAProxy-1**
+Recuperar servicio haproxy en HAProxy-1
 
 - systemctl start haproxy
 
@@ -2188,8 +1412,8 @@ Patroni debe promover automáticamente una réplica a leader
 
 Cuando detienes Patroni en postgresql1 ocurren dos cosas:
 
-1.  Se detiene PostgreSQL.
-2.  Patroni elimina ese nodo del clúster porque ya no puede enviar su heartbeat al DCS (etcd).
+1. Se detiene PostgreSQL.
+2. Patroni elimina ese nodo del clúster porque ya no puede enviar su heartbeat al DCS (etcd).
 
 Por eso desaparece de la lista. No aparece como stopped, simplemente deja de formar parte del clúster activo.
 
@@ -2203,23 +1427,23 @@ En postgresql1:
 
 Esto es precisamente una de las ventajas de Patroni. Con PostgreSQL manualmente tendrías que:
 
-1.  Averiguar quién es el nuevo líder,
-2.  Ejecutar pg_rewind o pg_basebackup,
-3.  Reconfigurar la replicación,
-4.  Arrancar PostgreSQL.
+1. Averiguar quién es el nuevo líder,
+2. Ejecutar pg_rewind o pg_basebackup,
+3. Reconfigurar la replicación,
+4. Arrancar PostgreSQL.
 
 Con Patroni, todo eso lo hace automáticamente.
 
-**¿Qué significa TL = Timeline?**
+¿Qué significa TL = Timeline?
 
 Cada vez que Patroni promueve una réplica a líder, PostgreSQL crea una nueva timeline para evitar que el antiguo líder siga escribiendo sobre el mismo historial.
 
 En tu caso ocurrió esto:
 
-1.  postgresql1 era el líder → Timeline 6
-2.  Lo detuviste.
-3.  postgresql2 fue promovido → Timeline 7
-4.  postgresql1 volvió como réplica y ahora debe sincronizarse con la nueva timeline.
+1. postgresql1 era el líder → Timeline 6
+2. Lo detuviste.
+3. postgresql2 fue promovido → Timeline 7
+4. postgresql1 volvió como réplica y ahora debe sincronizarse con la nueva timeline.
 
 ![captura de terminal](media/Pictures/1000020100000311000000893CE12D710B966945.png)
 
@@ -2284,7 +1508,7 @@ Y ejecuta:
 
 Esa prueba confirma que la replicación funciona correctamente.
 
-La salida indica: **pg_is_in_recovery = t** (t** **(true) → es una réplica solo lectura).
+La salida indica: pg_is_in_recovery = t (t (true) → es una réplica solo lectura).
 
 La tabla prueba_ha existe con el mismo contenido que en el líder. Eso demuestra que la escritura realizada en el líder se ha replicado automáticamente a replicas
 
