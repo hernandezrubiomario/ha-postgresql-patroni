@@ -1,0 +1,9 @@
+# Secretos y credenciales
+*.key
+*.pem
+.env
+secrets/
+*.pgpass
+
+# Logs
+*.log
