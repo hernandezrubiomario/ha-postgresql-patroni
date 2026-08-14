@@ -31,7 +31,7 @@ La contraseña era correcta y coincidía en todos los nodos (`.pgpass` y `patron
    ```sql
    ALTER ROLE replicator WITH PASSWORD '<REPLICATOR_PASSWORD>';
    ```
-3. Reiniciar Patroni en los nodos réplica (`hadoop-worker2` y `hadoop-worker3`).
+3. Reiniciar Patroni en los nodos réplica (`postgresql2` y `postgresql3`).
 
 **Resultado:** `postgresql2` y `postgresql3` sincronizados correctamente como réplicas activas, siguiendo a `postgresql1` sin errores.
 
