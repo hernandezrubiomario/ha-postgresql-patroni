@@ -21,32 +21,7 @@ Créalo vacío por ahora.
 
 ![captura de terminal](media/Pictures_dashboard/100002010000054A000000FAFEE2D7570CC3B429.png)
 
-## 2. Mostrar postgresql1, postgresql2, postgresql3
-
-La solución más limpia no modificarlo manualmente en Grafana, sino añadir nombres a los targets en Prometheus. Así esos nombres nos servirán en paneles futuros.
-
-- vi /etc/prometheus/prometheus.yml
-- Añade/modifica
-
-```yaml
-job_name: "postgres_exporter"
-static_configs:
-  - targets: ["192.168.10.21:9187"]
-    labels:
-      name: "postgresql1"
-  - targets: ["192.168.10.22:9187"]
-    labels:
-      name: "postgresql2"
-  - targets: ["192.168.10.23:9187"]
-    labels:
-      name: "postgresql3"
-```
-
-- promtool check config /etc/prometheus/prometheus.yml
-- sudo systemctl restart prometheus
-- systemctl status prometheus --no-pager
-
-## 3. Crear paneles
+## 2. Crear paneles
 
 ### Panel: Primary actual
 
