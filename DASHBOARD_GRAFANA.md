@@ -167,10 +167,6 @@ and on(scope, name)
 
 ```promql
 scalar(max(patroni_xlog_location))
-```
-
-
-- 
 (
 
 patroni_xlog_replayed_location
@@ -180,6 +176,7 @@ and on(scope, name)
 (patroni_replica == 1)
 
 )
+```
 
 - Query → Options → Legend → Custom → añade {{name}}
 
@@ -659,6 +656,7 @@ Verificar que HAProxy ha detectado automáticamente el nuevo Primary mediante Pa
 
 Ve a Prometheus → Graph/Query y pega:
 
+```promql
 haproxy_server_status{
 
 job="haproxy",
@@ -668,7 +666,7 @@ proxy="patroni_primary",
 state="UP"
 
 }
-
+```
 ![captura de terminal](media/Pictures_dashboard/100002010000065D00000230FF47848477DECA06.png)
 
 La captura confirma que ambos HAProxy han detectado automáticamente el nuevo Primary:
