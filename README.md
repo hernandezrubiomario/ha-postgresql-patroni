@@ -2,6 +2,7 @@
 
 Laboratorio propio de despliegue de un clúster PostgreSQL de alta disponibilidad, usando:
 
+- **Sistema operativo:** Rocky Linux 9.8 (5 nodos)
 - **PostgreSQL** (3 nodos)
 - **etcd** como almacén de coordinación distribuido (5 miembros)
 - **Patroni** para failover automático y gestión del clúster
