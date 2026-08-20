@@ -396,37 +396,22 @@ evaluation_interval: 15s
 # Servicios de los que Prometheus recopilará métricas
 scrape_configs:
 # Monitorización del propio Prometheus
-```
-
  - job_name: "prometheus"
-
 static_configs:
-
  - targets:
-
  - "localhost:9090"
-
 # Métricas del sistema operativo mediante Node Exporter
-
  - job_name: "node_exporter"
-
 static_configs:
-
  - targets:
-
 # Servidores PostgreSQL
-
  - "192.168.10.21:9100" # postgresql1
-
  - "192.168.10.22:9100" # postgresql2
-
  - "192.168.10.23:9100" # postgresql3
-
 # Servidores HAProxy
-
  - "192.168.10.30:9100" # HAProxy-1
-
  - "192.168.10.31:9100" # HAProxy-2
+```
 
 Comprueba la configuración:
 
