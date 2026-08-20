@@ -645,7 +645,7 @@ Después repetiremos exactamente lo mismo en postgresql2 y postgresql3.
 
 *No necesitas volver a crear el usuario `postgres_exporter` en PostgreSQL, porque ese rol ya existe y está replicado en todo el clúster.*
 
-Añade los tres postgres_exporter a Prometheus.
+### Añade los tres postgres_exporter a Prometheus con sus respectivos nombres
 
 En el nodo monitoring:
 
@@ -653,19 +653,20 @@ En el nodo monitoring:
 ```yaml
 Debajo del bloque de node_exporter, añade:
 # Métricas internas de PostgreSQL mediante postgres_exporter
+job_name: "postgres_exporter"
+    static_configs:
+      - targets: ["192.168.10.21:9187"]
+        labels:
+          name: "postgresql1"
+
+      - targets: ["192.168.10.22:9187"]
+        labels:
+          name: "postgresql2"
+
+      - targets: ["192.168.10.23:9187"]
+        labels:
+          name: "postgresql3"
 ```
-
-- job_name: "postgres_exporter"
-
-static_configs:
-
- - targets:
-
- - "192.168.10.21:9187" # postgresql1
-
- - "192.168.10.22:9187" # postgresql2
-
- - "192.168.10.23:9187" # postgresql3
 
 Valida y reinicia:
 
@@ -683,9 +684,6 @@ Debes ver los tres destinos de postgres_exporter en estado UP.
 
 
 ![captura de terminal](media/Pictures_monitoring/100002010000075C000000F8BFE5C0A57C1FC90D.png)
-
-
-### Importar un Dashboard de postgres_exporter* *en Grafana
 
 ### Ahora vamos a visualizar PostgreSQL en Grafana
 
@@ -843,22 +841,19 @@ Comprueba:
 ### Configura Prometheus
 
 - vi /etc/prometheus/prometheus.yml:
-```yaml
+
 -Añade dentro de scrape_configs:
-# Monitorización de HAProxy.
-# Permite conocer el estado de frontends/backends, sesiones,
-# conexiones y disponibilidad de los nodos PostgreSQL.
+
+```yaml
+  # Monitorización de HAProxy.
+  # Permite conocer el estado de frontends/backends, sesiones,
+  # conexiones y disponibilidad de los nodos PostgreSQL.
+  - job_name: "haproxy"
+    static_configs:
+      - targets:
+          - "192.168.10.30:8404"  # HAProxy-1
+          - "192.168.10.31:8404"  # HAProxy-2
 ```
-
- - job_name: "haproxy"
-
-static_configs:
-
- - targets:
-
- - "192.168.10.30:8404" # HAProxy-1
-
- - "192.168.10.31:8404" # HAProxy-2
 
 Valida y reinicia:
 
@@ -922,7 +917,7 @@ Añadir etcd a Prometheus con etiquetas para dejar nombres claros
 
 ### Comprueba en Prometheus
 
-### Prometheus → Status → Target
+Prometheus → Status → Target
 
 
 ![captura de terminal](media/Pictures_monitoring/1000020100000662000001A5C9A455BED5C338F2.png)
@@ -993,7 +988,6 @@ cat > "${FILE}.tmp" <<EOF
 # HELP keepalived_vip_owner Indicates whether this node owns the PostgreSQL VIP
 # TYPE keepalived_vip_owner gauge
 keepalived_vip_owner ${VALUE}
-EOF
 
 # Reemplazar el archivo de métricas de forma atómica
 mv "${FILE}.tmp" "${FILE}"
@@ -1135,26 +1129,21 @@ Hacer que Prometheus recoja las métricas que Patroni ya expone en el puerto 800
 ### Configuración
 
 - vi /etc/prometheus/prometheus.yml
+
+- Añadir dentro de scrape_configs:
+
 ```yaml
-Añadir dentro de scrape_configs:
-# Monitorización de Patroni mediante su API REST.
-# Permite observar el estado HA: primary, réplicas,
-# PostgreSQL activo, timeline, replicación, etc.
+  # Monitorización de Patroni mediante su API REST.
+  # Permite observar el estado HA: primary, réplicas,
+  # PostgreSQL activo, timeline, replicación, etc.
+  - job_name: "patroni"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "192.168.10.21:8008"  # postgresql1
+          - "192.168.10.22:8008"  # postgresql2
+          - "192.168.10.23:8008"  # postgresql3
 ```
-
- - job_name: "patroni"
-
-metrics_path: /metrics
-
-static_configs:
-
- - targets:
-
- - "192.168.10.21:8008" # postgresql1
-
- - "192.168.10.22:8008" # postgresql2
-
- - "192.168.10.23:8008" # postgresql3
 
 ### Validar y reiniciar
 
