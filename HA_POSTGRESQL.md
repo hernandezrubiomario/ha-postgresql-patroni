@@ -1,5 +1,7 @@
 # HA PostgreSQL con Patroni, etcd y HAProxy
 
+**Sistema operativo:** Rocky Linux 9.8 (5 nodos: `postgresql1-3`, `HAProxy-1`, `HAProxy-2`)
+
 ## Topología
 
 ![captura de terminal](media/Pictures/10000201000001DE0000019E715F8BFA8821293A.png)
@@ -25,7 +27,7 @@ dnf install -y \
 
 Inicializar manualmente el clúster PostgreSQL no era necesario para el despliegue final con Patroni. Ese comando crea un clúster PostgreSQL independiente (PGDATA). Patroni es quien realiza el bootstrap.
 
-Habilita el servicio
+### Habilita el servicio
 
 - systemctl enable --now postgresql-18.service
 
@@ -98,7 +100,7 @@ Se crea un usuario de sistema exclusivo para etcd para ejecutar el servicio de f
 
 - id etcd
 
-### Crear los directorios y asigna permisos (en los 5 nodos)
+Crear los directorios y asigna permisos (en los 5 nodos)
 
 - mkdir -p /etc/etcd
 
@@ -233,7 +235,7 @@ initial-cluster-state: new
 initial-cluster-token: postgres-cluster
 ```
 
-### Asigna propietario y permisos en los 5 nodos
+### Asigna propietraio y permisos en los 5 nodos
 
 - chown etcd:etcd /etc/etcd/etcd.conf.yml
 
@@ -256,7 +258,7 @@ En los 5 nodos:
 
 ### Comprobar directorio vacío (en los 5 nodos)
 
-Solo para este primer arranque. Debe estar vacío
+### Solo para este primer arranque. Debe estar vacío
 
 - ls -la /var/lib/etcd
 
@@ -290,7 +292,7 @@ Desde nodo con etcd:
 
 El resultado es correcto: muestra 5 nodos y uno de ellos como lider
 
-### Mostrar salud de etcd
+### Mostrar salid de etcd
 
 Comprueba la salud de los 5 nodos etcd, verificando que cada endpoint está accesible y puede responder correctamente.
 
@@ -311,7 +313,7 @@ Con la versión 3.5.x que tienes, realmente ya no suele ser necesaria, porque v3
 
 ## 3. Instalar Patroni en 3 nodos postgresql (en un entorno virtual venv)
 
-Ventajas de usar entorno virtual
+### Ventajas de usar entorno virtual
 
 - No mezcla dependencias con el sistema.
 - Las actualizaciones de Python del SO no afectan a Patroni.
@@ -320,7 +322,7 @@ Ventajas de usar entorno virtual
 
 ### Detener PostgreSQL
 
-Patroni deberá controlar PostgreSQ
+### Patroni deberá controlar PostgreSQ
 
 - systemctl stop postgresql
 
@@ -361,7 +363,7 @@ Como utilizamos etcd mediante la API v3 y PostgreSQL 18, instalamos Patroni con 
 - etcd3 → permite a Patroni utilizar etcd como sistema distribuido de coordinación (DCS) mediante su API v3.
 - psycopg3 → controlador Python que permite a Patroni comunicarse con PostgreSQL.
 
-Comprobar
+### Comprobar
 
 /opt/patroni/bin/patroni --version
 
@@ -400,7 +402,7 @@ Con esta salida construiremos el patroni.yml correctamente. Es importante porque
 
 ![captura de terminal](media/Pictures/100002010000021000000177F718827CFC3C8C2D.png)
 
-### Limpiar el PostgreSQL inicial en caso de ser haber sido inicializado
+Limpiar el PostgreSQL inicial en caso de ser haber sido inicializado
 
 Como Patroni debe crear y gestionar el clúster, eliminaremos el data directory creado con postgresql-18-setup --initdb.
 
@@ -744,7 +746,7 @@ EOF
 
 - chmod 600 /etc/patroni/patroni.yml
 
-### Valida en los tres workers
+Valida en los tres workers:
 
 - /opt/patroni/bin/patroni --validate-config /etc/patroni/patroni.yml
 
@@ -752,7 +754,7 @@ EOF
 
 ### Crear el servicio systemd de Patroni
 
-En los 3 nodos patroni crear el fichero
+### En los 3 nodos patroni crear el fichero
 
 - vi /etc/systemd/system/patroni.service
 
@@ -807,21 +809,25 @@ Todo ello debe hacerse con el usuario propietario de PostgreSQL (postgres).
 
 ## 4. Inicializar el clúster
 
-Comprobaciones previas en los 3 nodos postgresql/patroni
+### Comprobaciones previas en los 3 nodos postgresql/patroni
 
 PostgreSQL debe estar parado- Debe aparecer:inactive (dead)
 
 - systemctl status postgresql
 
-El directorio de datos debe estar vacío
+- 
 
-- rm -rf /var/lib/pgsql/data
+### El directorio de datos debe estar vacío
 
 - ls -la /var/lib/pgsql/data
+
+- 
 
 etcd debe estar funcionando. Debe aparecer: active (running)
 
 - systemctl status etcd
+
+- - 
 
 Validar la configuración de Patroni (Sin salida = correcto)
 
@@ -1320,6 +1326,53 @@ Keepalived funciona correctamente:
 
 Por tanto, HAProxy-1 está como MASTER y HAProxy-2 como BACKUP.
 
+---
+
+### VRRP Multicast (modo tradicional)
+
+Es el modo original de VRRP. Los nodos envían anuncios multicast para avisar de que siguen vivos.
+
+![captura de terminal](media/Pictures/10000201000000DE0000002CBC801D83083B3990.png)
+
+### Ventajas
+
+- Configuración muy sencilla.
+- Es el estándar de VRRP.
+- Muy utilizado en redes físicas tradicionales.
+
+### Inconvenientes
+
+Muchas plataformas virtuales bloquean o no gestionan bien el tráfico multicast, por ejemplo:
+
+- VMware (según configuración) y VirtualBox.
+- Algunas redes cloud.
+- Algunas VLAN o switches.
+
+Esto puede provocar que los nodos no se vean entre sí y ambos crean que son el MASTER (split-brain).
+
+### VRRP Unicast
+
+En lugar de enviar multicast, los nodos se envían mensajes directamente entre ellos.
+
+![captura de terminal](media/Pictures/10000201000000EB0000002A256C910D64C3F676.png)
+
+No depende de que la red soporte multicast.
+
+### Ventajas
+
+- Funciona en prácticamente cualquier red.
+- Ideal para máquinas virtuales.
+- Ideal para cloud (AWS, Azure, GCP...).
+- Más predecible.
+
+### Inconveniente
+
+- Hay que indicar manualmente quiénes son los nodos vecinos (unicast_peer)
+
+¿Es unicast incorrecto en físico? No. Unicast también es totalmente válido en servidores físicos. Simplemente configuras explícitamente las IP de los dos nodos. Es más predecible y facilita saber exactamente entre qué servidores circulan los anuncios
+
+---
+
 ### Detener servicio haproxy en HAProxy-1
 
 - systemctl stop haproxy
@@ -1341,7 +1394,7 @@ Tras unos segundos, como HAProxy-1 tiene prioridad 110 y HAProxy-2 prioridad 100
 
 ## 8. Validar la alta disponibilidad completa
 
-### Caída del PostgreSQL líder postgresql1
+### Caída del PostgreSQL líder
 
 Primero comprueba cuál es el líder actual desde cualquiera de los nodos PostgreSQL:
 
@@ -1357,7 +1410,7 @@ Espera unos segundos y vuelve a comprobar desde otro nodo:
 
 ![captura de terminal](media/Pictures/10000201000003110000008B180854A10A9EC933.png)
 
-Patroni debe promover automáticamente una réplica a leader
+### Patroni debe promover automáticamente una réplica a leader
 
 Cuando detienes Patroni en postgresql1 ocurren dos cosas:
 
@@ -1443,7 +1496,7 @@ Aunque psql se ejecutó en postgresql1, la conexión fue a la VIP (192.168.10.32
 
 La escritura a través de la VIP funciona correctamente. Ahora comprobamos que el dato se ha replicado en las dos réplicas
 
-En postgresql1 y postgresql3
+### En postgresql1 y postgresql3
 
 - sudo -u postgres psql -d postgres
 
