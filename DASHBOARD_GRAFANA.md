@@ -144,10 +144,7 @@ Para calcular el lag real utilizamos:
 
 ```promql
 scalar(max(patroni_xlog_location))
-```
 
-
-- 
 (
 
 patroni_xlog_replayed_location
@@ -157,7 +154,7 @@ and on(scope, name)
 (patroni_replica == 1)
 
 )
-
+```
 ![captura de terminal](media/Pictures_dashboard/100002010000018C00000082C65918353DF1A2AC.png)
 
 ### En Grafana creamos el panel
