@@ -21,6 +21,12 @@ Laboratorio propio de despliegue de un clúster PostgreSQL de alta disponibilida
 
 ![Arquitectura HA PostgreSQL](./media/diagrams/arquitectura_ha_postgresql.png)
 
+## Dashboard de monitorización
+
+![Dashboard Grafana - PostgreSQL HA Overview](./media/diagrams/dashboard_grafana_overview.png)
+
+Estado en tiempo real del clúster: nodo Primary, réplicas, replication lag, miembros y leader de etcd, estado de HAProxy y propietario de la VIP. Detalle completo panel a panel en [`DASHBOARD_GRAFANA.md`](./DASHBOARD_GRAFANA.md).
+
 ## Notas
 
 - Las contraseñas de los documentos están anonimizadas (`<POSTGRES_PASSWORD>`, `<REPLICATOR_PASSWORD>`, `<REWIND_PASSWORD>`, `<EXPORTER_PASSWORD>`); sustitúyelas por tus propios valores si reproduces el laboratorio.
