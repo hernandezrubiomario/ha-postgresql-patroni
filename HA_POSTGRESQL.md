@@ -1003,7 +1003,7 @@ timeout check 5s
 # Punto de entrada de las conexiones PostgreSQL.
 frontend postgres_primary
 # Escucha en el puerto 5432.
-bind \*:5432
+bind *:5432
 # Envía todas las conexiones al backend patroni_primary.
 default_backend patroni_primary
 # Backend formado por los tres servidores PostgreSQL.
@@ -1021,7 +1021,7 @@ server postgresql3 192.168.10.23:5432 check port 8008
 # Página web de estadísticas de HAProxy.
 listen stats
 # Disponible en el puerto 7000.
-bind \*:7000
+bind *:7000
 # Funciona mediante HTTP.
 mode http
 # Activa las estadísticas.
