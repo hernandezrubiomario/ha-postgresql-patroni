@@ -1167,7 +1167,7 @@ authentication {
 auth_type PASS
 # Contraseña compartida entre HAProxy-1 y HAProxy-2.
 # Debe coincidir en ambos nodos.
-auth_pass pgvip123
+auth_pass <VRRP_PASSWORD>
 }
 # Dirección IP virtual que se moverá entre los dos HAProxy.
 virtual_ipaddress {
@@ -1248,7 +1248,7 @@ authentication {
 auth_type PASS
 # Contraseña compartida.
 # Debe ser igual en ambos nodos.
-auth_pass pgvip123
+auth_pass <VRRP_PASSWORD>
 }
 # IP virtual que se moverá entre HAProxy-1 y HAProxy-2.
 virtual_ipaddress {
